@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { api } from '../api/server';
 import { colors, duration, formatDateTime, getState, kmh, since } from '../state/status';
 
@@ -14,6 +15,26 @@ const actionColors = {
 };
 
 const addressCache = new Map();
+const googleKey = Constants.expoConfig?.extra?.googleKey;
+
+// Full street address from Google (skips plus-code results), falling back to the server geocoder.
+async function lookupAddress(latitude, longitude) {
+  if (googleKey) {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&language=en&key=${googleKey}`,
+      );
+      const json = await response.json();
+      const result = (json.results || []).find((r) => !(r.types || []).includes('plus_code'));
+      if (result?.formatted_address) {
+        return result.formatted_address;
+      }
+    } catch {
+      // fall through to the server
+    }
+  }
+  return api(`api/server/geocode?latitude=${latitude}&longitude=${longitude}`);
+}
 
 function useAddress(position) {
   const [address, setAddress] = useState(position?.address);
@@ -29,8 +50,9 @@ function useAddress(position) {
       return;
     }
     let active = true;
-    api(`api/server/geocode?latitude=${position.latitude}&longitude=${position.longitude}`)
+    lookupAddress(position.latitude, position.longitude)
       .then((text) => {
+        if (!text) return;
         addressCache.set(key, text);
         if (active) setAddress(text);
       })

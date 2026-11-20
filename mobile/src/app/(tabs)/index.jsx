@@ -51,6 +51,16 @@ export default function Monitor() {
   const selected = selectedId ? devices[selectedId] : null;
   const selectedPosition = selectedId ? positions[selectedId] : null;
 
+  const [mapReady, setMapReady] = useState(false);
+  const initialRegion = useMemo(() => {
+    const first = selectedPosition || (withPositions[0] && positions[withPositions[0].id]);
+    return first
+      ? { latitude: first.latitude, longitude: first.longitude, latitudeDelta: ZOOM_DELTA, longitudeDelta: ZOOM_DELTA }
+      : { latitude: 30.3753, longitude: 69.3451, latitudeDelta: 12, longitudeDelta: 12 };
+    // only the first render matters
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const centerOn = (position, animated = true) => {
     if (!position || !mapRef.current) return;
     mapRef.current.animateToRegion(
@@ -66,7 +76,7 @@ export default function Monitor() {
 
   // follow the selected vehicle as live positions arrive
   useEffect(() => {
-    if (view !== 'map' || !selectedPosition || !mapRef.current) return;
+    if (view !== 'map' || !mapReady || !selectedPosition || !mapRef.current) return;
     const key = `${selectedId}:${selectedPosition.latitude}:${selectedPosition.longitude}`;
     if (lastCenteredRef.current === key) return;
     const first = !lastCenteredRef.current?.startsWith(`${selectedId}:`);
@@ -79,7 +89,7 @@ export default function Monitor() {
         { duration: 800 },
       );
     }
-  }, [selectedId, selectedPosition, view]);
+  }, [selectedId, selectedPosition, view, mapReady]);
 
   const openVehicle = (id) => {
     setSelectedId(id);
@@ -171,7 +181,11 @@ export default function Monitor() {
             showsMyLocationButton={false}
             showsCompass={false}
             toolbarEnabled={false}
-            onMapReady={fitAll}
+            initialRegion={initialRegion}
+            onMapReady={() => {
+              setMapReady(true);
+              if (!selectedId) fitAll();
+            }}
           >
             {selectedId && trails[selectedId]?.length > 1 && (
               <Polyline coordinates={trails[selectedId]} strokeColor="#16A34A" strokeWidth={5} />
