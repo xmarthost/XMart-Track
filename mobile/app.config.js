@@ -22,6 +22,17 @@ module.exports = {
     },
     plugins: [
       'expo-router',
+      [
+        'expo-build-properties',
+        {
+          // R8 strips classes that WorkManager/Room create by reflection and the app
+          // crashes on start; the size saving is not worth it for this app.
+          android: {
+            enableMinifyInReleaseBuilds: false,
+            enableShrinkResourcesInReleaseBuilds: false,
+          },
+        },
+      ],
       'expo-secure-store',
       [
         'expo-splash-screen',
