@@ -171,7 +171,7 @@ export default function Monitor() {
       </View>
 
       <View style={{ flex: 1 }}>
-        <View style={[StyleSheet.absoluteFill, { opacity: view === 'map' ? 1 : 0 }]} pointerEvents={view === 'map' ? 'auto' : 'none'}>
+        <View style={StyleSheet.absoluteFill}>
           <MapView
             ref={mapRef}
             provider={PROVIDER_GOOGLE}
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
   segmentText: { fontSize: 16, color: colors.muted, fontWeight: '600' },
   segmentActive: { color: colors.teal },
   segmentBar: { position: 'absolute', bottom: 0, width: '60%', height: 3, borderRadius: 2, backgroundColor: colors.teal },
-  listLayer: { backgroundColor: colors.background },
+  listLayer: { backgroundColor: colors.background, zIndex: 20, elevation: 30 },
   search: {
     flexDirection: 'row',
     alignItems: 'center',
