@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { api, socketUrl } from '../api/server';
+import { logInfo, logWarn } from './log';
 
 const AppContext = createContext(null);
 const TRAIL_LENGTH = 300;
@@ -51,7 +52,10 @@ export function AppProvider({ children }) {
     const connect = () => {
       const socket = new WebSocket(socketUrl());
       socketRef.current = socket;
-      socket.onopen = () => setConnected(true);
+      socket.onopen = () => {
+        logInfo('socket', 'connected');
+        setConnected(true);
+      };
       socket.onmessage = (message) => {
         const data = JSON.parse(message.data);
         if (data.devices) {
@@ -66,11 +70,15 @@ export function AppProvider({ children }) {
         if (data.positions) applyPositions(data.positions);
         if (data.events) setEvents((previous) => [...data.events, ...previous].slice(0, 100));
       };
-      socket.onclose = () => {
+      socket.onclose = (event) => {
+        logWarn('socket', `closed code ${event?.code ?? '?'} ${event?.reason || ''}`);
         setConnected(false);
         if (!closed) retry = setTimeout(connect, 5000);
       };
-      socket.onerror = () => socket.close();
+      socket.onerror = (event) => {
+        logWarn('socket', 'error', event?.message || '');
+        socket.close();
+      };
     };
     refresh().catch(() => {});
     connect();

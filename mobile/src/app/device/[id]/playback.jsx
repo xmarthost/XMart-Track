@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MaterialIcons } from '@expo/vector-icons';
 import { api } from '../../../api/server';
-import { carImages, colors, duration, formatDateTime, kmh } from '../../../state/status';
+import { colors, duration, formatDateTime, kmh } from '../../../state/status';
+import TrackMap from '../../../map/TrackMap';
+import { useApp } from '../../../state/AppState';
 
 const speeds = { Slow: 500, Medium: 200, Fast: 60 };
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -20,7 +21,9 @@ export default function Playback() {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState('Medium');
   const [trackWidth, setTrackWidth] = useState(0);
-  const mapRef = useRef(null);
+  const cameraRef = useRef(null);
+  const { positions: livePositions } = useApp();
+  const last = livePositions[deviceId];
 
   useEffect(() => {
     const from = new Date(`${day}T00:00:00`);
@@ -37,11 +40,13 @@ export default function Playback() {
           ),
         );
         if (positions.length > 1) {
+          const lngs = positions.map((p) => p.longitude);
+          const lats = positions.map((p) => p.latitude);
           setTimeout(
             () =>
-              mapRef.current?.fitToCoordinates(
-                positions.map((p) => ({ latitude: p.latitude, longitude: p.longitude })),
-                { edgePadding: { top: 40, right: 40, bottom: 40, left: 40 }, animated: true },
+              cameraRef.current?.fitBounds(
+                [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)],
+                { padding: { top: 40, right: 40, bottom: 40, left: 40 }, duration: 600 },
               ),
             300,
           );
@@ -79,20 +84,17 @@ export default function Playback() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <MapView ref={mapRef} provider={PROVIDER_GOOGLE} style={{ height: '42%' }} toolbarEnabled={false}>
-        {route.length > 1 && (
-          <Polyline coordinates={route.map((p) => ({ latitude: p.latitude, longitude: p.longitude }))} strokeColor="#16A34A" strokeWidth={5} />
-        )}
-        {current && (
-          <Marker
-            coordinate={{ latitude: current.latitude, longitude: current.longitude }}
-            image={carImages.moving}
-            rotation={current.course || 0}
-            flat
-            anchor={{ x: 0.5, y: 0.5 }}
-          />
-        )}
-      </MapView>
+      <TrackMap
+        ref={cameraRef}
+        style={{ height: '42%' }}
+        initialViewState={last ? { center: [last.longitude, last.latitude], zoom: 14 } : { center: [69.3451, 30.3753], zoom: 4.5 }}
+        trail={route.length > 1 ? route : null}
+        cars={
+          current
+            ? [{ id: deviceId, latitude: current.latitude, longitude: current.longitude, course: current.course, state: 'moving' }]
+            : []
+        }
+      />
       <View style={styles.panel}>
         <View style={styles.row}>
           <Text style={styles.muted}>{current ? formatDateTime(current.fixTime) : '--'}</Text>

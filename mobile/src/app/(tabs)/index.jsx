@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useApp } from '../../state/AppState';
-import { carImages, colors, getState, kmh, since } from '../../state/status';
+import { colors, getState, kmh, since } from '../../state/status';
 import VehicleSheet from '../../components/VehicleSheet';
 import MapButtons from '../../components/MapButtons';
+import TrackMap from '../../map/TrackMap';
+import { findStyle, mapStyles } from '../../map/mapStyles';
+import { chooseMapStyle, useMapState } from '../../map/mapState';
 
 const tabs = [
   { key: 'all', label: 'All' },
@@ -14,23 +16,17 @@ const tabs = [
   { key: 'offline', label: 'Offline' },
   { key: 'unknown', label: 'Inactive' },
 ];
-const mapTypes = [
-  { key: 'standard', label: 'Google Road' },
-  { key: 'hybrid', label: 'Google Hybrid' },
-  { key: 'satellite', label: 'Google Satellite' },
-  { key: 'terrain', label: 'Google Terrain' },
-];
-const ZOOM_DELTA = 0.006; // street level
+const STREET_ZOOM = 16;
 
 export default function Monitor() {
   const { user, devices, positions, trails, selectedId, setSelectedId, refresh } = useApp();
   const [view, setView] = useState('list');
   const [tab, setTab] = useState('all');
   const [keyword, setKeyword] = useState('');
-  const [mapType, setMapType] = useState('standard');
+  const { chosen: mapStyle, active: activeStyle } = useMapState();
   const [mapTypeOpen, setMapTypeOpen] = useState(false);
   const [sheetHeight, setSheetHeight] = useState(0);
-  const mapRef = useRef(null);
+  const cameraRef = useRef(null);
   const lastCenteredRef = useRef(null);
 
   const list = useMemo(() => {
@@ -51,32 +47,29 @@ export default function Monitor() {
   const selected = selectedId ? devices[selectedId] : null;
   const selectedPosition = selectedId ? positions[selectedId] : null;
 
-  const [mapReady, setMapReady] = useState(false);
-  const initialRegion = useMemo(() => {
+  const initialViewState = useMemo(() => {
     const first = selectedPosition || (withPositions[0] && positions[withPositions[0].id]);
     return first
-      ? { latitude: first.latitude, longitude: first.longitude, latitudeDelta: ZOOM_DELTA, longitudeDelta: ZOOM_DELTA }
-      : { latitude: 30.3753, longitude: 69.3451, latitudeDelta: 12, longitudeDelta: 12 };
+      ? { center: [first.longitude, first.latitude], zoom: 15.5 }
+      : { center: [69.3451, 30.3753], zoom: 4.5 };
     // only the first render matters
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const padding = { top: 0, right: 0, left: 0, bottom: selected ? sheetHeight : 0 };
 
-  const centerOn = (position, animated = true) => {
-    if (!position || !mapRef.current) return;
-    mapRef.current.animateToRegion(
-      {
-        latitude: position.latitude,
-        longitude: position.longitude,
-        latitudeDelta: ZOOM_DELTA,
-        longitudeDelta: ZOOM_DELTA,
-      },
-      animated ? 500 : 0,
-    );
+  const centerOn = (position) => {
+    if (!position || !cameraRef.current) return;
+    cameraRef.current.easeTo({
+      center: [position.longitude, position.latitude],
+      zoom: STREET_ZOOM,
+      padding,
+      duration: 500,
+    });
   };
 
   // follow the selected vehicle as live positions arrive
   useEffect(() => {
-    if (view !== 'map' || !mapReady || !selectedPosition || !mapRef.current) return;
+    if (view !== 'map' || !selectedPosition || !cameraRef.current) return;
     const key = `${selectedId}:${selectedPosition.latitude}:${selectedPosition.longitude}`;
     if (lastCenteredRef.current === key) return;
     const first = !lastCenteredRef.current?.startsWith(`${selectedId}:`);
@@ -84,12 +77,14 @@ export default function Monitor() {
     if (first) {
       centerOn(selectedPosition);
     } else {
-      mapRef.current.animateCamera(
-        { center: { latitude: selectedPosition.latitude, longitude: selectedPosition.longitude } },
-        { duration: 800 },
-      );
+      cameraRef.current.easeTo({
+        center: [selectedPosition.longitude, selectedPosition.latitude],
+        padding,
+        duration: 800,
+      });
     }
-  }, [selectedId, selectedPosition, view, mapReady]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, selectedPosition, view, sheetHeight]);
 
   const openVehicle = (id) => {
     setSelectedId(id);
@@ -105,17 +100,34 @@ export default function Monitor() {
   };
 
   const fitAll = () => {
-    const coordinates = withPositions.map((d) => ({
-      latitude: positions[d.id].latitude,
-      longitude: positions[d.id].longitude,
-    }));
+    const coordinates = withPositions.map((d) => positions[d.id]);
     if (coordinates.length === 1) centerOn(coordinates[0]);
     else if (coordinates.length > 1) {
-      mapRef.current?.fitToCoordinates(coordinates, {
-        edgePadding: { top: 80, right: 80, bottom: sheetHeight + 80, left: 80 },
-        animated: true,
-      });
+      const lngs = coordinates.map((p) => p.longitude);
+      const lats = coordinates.map((p) => p.latitude);
+      cameraRef.current?.fitBounds(
+        [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)],
+        { padding: { top: 80, right: 80, bottom: (selected ? sheetHeight : 0) + 80, left: 80 }, duration: 600 },
+      );
     }
+  };
+
+  const cars = withPositions.map((device) => {
+    const position = positions[device.id];
+    return {
+      id: device.id,
+      latitude: position.latitude,
+      longitude: position.longitude,
+      course: position.course,
+      state: getState(device, position),
+    };
+  });
+
+  const toggleSatellite = () => {
+    const current = findStyle(mapStyle);
+    const google = current.group === 'Google';
+    if (current.satellite) chooseMapStyle(google ? 'googleRoad' : 'freeStreets');
+    else chooseMapStyle(google ? 'googleHybrid' : 'freeSatellite');
   };
 
   const renderRow = ({ item }) => {
@@ -172,46 +184,19 @@ export default function Monitor() {
 
       <View style={{ flex: 1 }}>
         <View style={StyleSheet.absoluteFill}>
-          <MapView
-            ref={mapRef}
-            provider={PROVIDER_GOOGLE}
+          <TrackMap
+            ref={cameraRef}
             style={StyleSheet.absoluteFill}
-            mapType={mapType}
-            mapPadding={{ top: 0, right: 0, left: 0, bottom: selected ? sheetHeight : 0 }}
-            showsMyLocationButton={false}
-            showsCompass={false}
-            toolbarEnabled={false}
-            initialRegion={initialRegion}
-            onMapReady={() => {
-              setMapReady(true);
-              if (!selectedId) fitAll();
-            }}
-          >
-            {selectedId && trails[selectedId]?.length > 1 && (
-              <Polyline coordinates={trails[selectedId]} strokeColor="#16A34A" strokeWidth={5} />
-            )}
-            {withPositions.map((device) => {
-              const position = positions[device.id];
-              return (
-                <Marker
-                  key={device.id}
-                  coordinate={{ latitude: position.latitude, longitude: position.longitude }}
-                  image={carImages[getState(device, position)]}
-                  rotation={position.course || 0}
-                  flat
-                  anchor={{ x: 0.5, y: 0.5 }}
-                  title={device.name}
-                  tracksViewChanges={false}
-                  onPress={() => openVehicle(device.id)}
-                />
-              );
-            })}
-          </MapView>
+            initialViewState={initialViewState}
+            cars={cars}
+            trail={selectedId ? trails[selectedId] : null}
+            onCarPress={openVehicle}
+          />
           <MapButtons
             onRefresh={() => refresh().catch(() => {})}
             onMapType={() => setMapTypeOpen(true)}
-            satellite={mapType !== 'standard'}
-            onSatellite={() => setMapType(mapType === 'standard' ? 'hybrid' : 'standard')}
+            satellite={findStyle(activeStyle).satellite}
+            onSatellite={toggleSatellite}
             onPrevious={() => switchVehicle(-1)}
             onNext={() => switchVehicle(1)}
             canSwitch={withPositions.length > 1}
@@ -273,22 +258,29 @@ export default function Monitor() {
       <Modal visible={mapTypeOpen} transparent animationType="fade" onRequestClose={() => setMapTypeOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setMapTypeOpen(false)}>
           <View style={styles.menu}>
-            {mapTypes.map((item) => (
-              <Pressable
-                key={item.key}
-                style={styles.menuItem}
-                onPress={() => {
-                  setMapType(item.key);
-                  setMapTypeOpen(false);
-                }}
-              >
-                <MaterialIcons
-                  name={mapType === item.key ? 'radio-button-checked' : 'radio-button-unchecked'}
-                  size={20}
-                  color={colors.teal}
-                />
-                <Text style={styles.menuText}>{item.label}</Text>
-              </Pressable>
+            {mapStyles.map((item, index) => (
+              <View key={item.id}>
+                {(index === 0 || mapStyles[index - 1].group !== item.group) && (
+                  <Text style={styles.menuGroup}>{item.group === 'Google' ? 'Google maps' : 'Free maps'}</Text>
+                )}
+                <Pressable
+                  style={styles.menuItem}
+                  onPress={() => {
+                    chooseMapStyle(item.id);
+                    setMapTypeOpen(false);
+                  }}
+                >
+                  <MaterialIcons
+                    name={mapStyle === item.id ? 'radio-button-checked' : 'radio-button-unchecked'}
+                    size={20}
+                    color={colors.teal}
+                  />
+                  <Text style={styles.menuText}>{item.label}</Text>
+                  {mapStyle === item.id && activeStyle !== item.id && (
+                    <Text style={styles.menuBadge}>not loading</Text>
+                  )}
+                </Pressable>
+              </View>
             ))}
           </View>
         </Pressable>
@@ -343,5 +335,7 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.35)', justifyContent: 'center', padding: 40 },
   menu: { backgroundColor: '#FFF', borderRadius: 16, paddingVertical: 8 },
   menuItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 14 },
-  menuText: { fontSize: 16, color: colors.text, fontWeight: '500' },
+  menuText: { fontSize: 16, color: colors.text, fontWeight: '500', flex: 1 },
+  menuGroup: { fontSize: 12, fontWeight: '700', color: colors.muted, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 2, textTransform: 'uppercase' },
+  menuBadge: { fontSize: 11, fontWeight: '700', color: colors.offline },
 });

@@ -1,5 +1,6 @@
 // XMart Track mobile app configuration.
-// GOOGLE_MAPS_API_KEY: Android key with "Maps SDK for Android" enabled (a GitHub secret overrides the built-in test key).
+// GOOGLE_MAPS_API_KEY: Google key used for street addresses (Geocoding API); a GitHub secret overrides the built-in test key.
+// Maps are drawn by MapLibre (Google or free tiles), not the Google Maps Android SDK.
 // XMART_SERVER: server address used by default on the login screen.
 const googleKey = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyB5JIXYxqF_yZdrzLBSIHxqJO4tu9c1fOk';
 
@@ -44,12 +45,7 @@ module.exports = {
           imageWidth: 180,
         },
       ],
-      [
-        'react-native-maps',
-        {
-          androidGoogleMapsApiKey: googleKey,
-        },
-      ],
+      '@maplibre/maplibre-react-native',
     ],
     extra: {
       server: process.env.XMART_SERVER || 'https://xmarttrack.site',

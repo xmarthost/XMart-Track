@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
+import { logError } from '../state/log';
 
 const SESSION_KEY = 'xm_session';
 let base = (Constants.expoConfig?.extra?.server || 'https://xmarttrack.site').replace(/\/+$/, '');
@@ -9,14 +10,23 @@ export const setBase = (url) => {
   base = url.trim().replace(/\/+$/, '');
 };
 
+const shortPath = (path) => path.split('?')[0];
+
 export async function api(path, options = {}) {
-  const response = await fetch(`${base}/${path}`, {
-    credentials: 'include',
-    ...options,
-    headers: { Accept: 'application/json', ...(options.headers || {}) },
-  });
+  let response;
+  try {
+    response = await fetch(`${base}/${path}`, {
+      credentials: 'include',
+      ...options,
+      headers: { Accept: 'application/json', ...(options.headers || {}) },
+    });
+  } catch (error) {
+    logError('api', `${options.method || 'GET'} ${shortPath(path)} network error:`, error);
+    throw error;
+  }
   if (!response.ok) {
     const text = await response.text();
+    logError('api', `${options.method || 'GET'} ${shortPath(path)} HTTP ${response.status}`, text.slice(0, 200));
     throw new Error(text || `HTTP ${response.status}`);
   }
   if (response.status === 204) return null;

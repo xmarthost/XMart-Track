@@ -17,6 +17,7 @@ export default function Me() {
     ['devices', 'Devices', () => web('settings/devices')],
     ['hexagon', 'Geofences', () => web('geofences')],
     ['security', 'Account security', () => web(`settings/user/${user?.id}`)],
+    ['bug-report', 'Diagnostics & logs', () => router.push('/diagnostics')],
   ];
 
   return (

@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { api } from '../api/server';
+import { logWarn } from '../state/log';
 import { colors, duration, formatDateTime, getState, kmh, since } from '../state/status';
 
 const actionColors = {
@@ -29,8 +30,9 @@ async function lookupAddress(latitude, longitude) {
       if (result?.formatted_address) {
         return result.formatted_address;
       }
-    } catch {
-      // fall through to the server
+      logWarn('address', `Google geocode ${json.status} ${json.error_message || ''}`);
+    } catch (error) {
+      logWarn('address', 'Google geocode error', error);
     }
   }
   return api(`api/server/geocode?latitude=${latitude}&longitude=${longitude}`);
@@ -56,7 +58,7 @@ function useAddress(position) {
         addressCache.set(key, text);
         if (active) setAddress(text);
       })
-      .catch(() => {});
+      .catch((error) => logWarn('address', 'server geocode failed', error));
     return () => {
       active = false;
     };

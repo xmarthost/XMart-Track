@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { installLogCapture, logInfo } from '../state/log';
 import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -7,6 +8,7 @@ import { AppProvider, useApp } from '../state/AppState';
 import { restoreSession } from '../api/server';
 import { colors } from '../state/status';
 
+installLogCapture();
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function Welcome() {
@@ -31,6 +33,7 @@ function Gate() {
   useEffect(() => {
     (async () => {
       const user = await restoreSession();
+      logInfo('session', user ? `restored ${user.email}` : 'no saved session');
       if (user) setUser(user);
       setReady(true);
       SplashScreen.hideAsync().catch(() => {});
@@ -47,6 +50,7 @@ function Gate() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="device/[id]/commands" options={headerOptions('Commands')} />
         <Stack.Screen name="device/[id]/playback" options={headerOptions('Playback')} />
+        <Stack.Screen name="diagnostics" options={headerOptions('Diagnostics & logs')} />
       </Stack>
       {!ready && (
         <View style={StyleSheet.absoluteFill}>
