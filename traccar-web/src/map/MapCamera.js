@@ -17,13 +17,14 @@ const MapCamera = ({ latitude, longitude, positions, coordinates }) => {
         const canvas = map.getCanvas();
         map.fitBounds(bounds, {
           padding: Math.min(canvas.width, canvas.height) * 0.1,
+          maxZoom: 17,
           duration: 0,
         });
       }
     } else {
       map.jumpTo({
         center: toMapCoordinates(longitude, latitude),
-        zoom: Math.max(map.getZoom(), 10),
+        zoom: Math.max(map.getZoom(), 16),
       });
     }
   }, [latitude, longitude, positions, coordinates]);

@@ -14,7 +14,7 @@ const MapSelectedDevice = () => {
   const previousTime = usePrevious(currentTime);
   const previousId = usePrevious(currentId);
 
-  const selectZoom = useAttributePreference('web.selectZoom', 10);
+  const selectZoom = useAttributePreference('web.selectZoom', 16);
   const mapFollow = useAttributePreference('mapFollow', false);
 
   const position = useSelector((state) => state.session.positions[currentId]);
@@ -36,7 +36,7 @@ const MapSelectedDevice = () => {
     ) {
       map.easeTo({
         center: toMapCoordinates(position.longitude, position.latitude),
-        zoom: Math.max(map.getZoom(), selectZoom),
+        zoom: currentId !== previousId ? selectZoom : Math.max(map.getZoom(), selectZoom),
         offset: [0, features.disableStatusCard ? 0 : -dimensions.popupMapOffset / 2],
       });
     }

@@ -24,6 +24,9 @@ import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import StreetviewIcon from '@mui/icons-material/Streetview';
 import ShareIcon from '@mui/icons-material/Share';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import TodayIcon from '@mui/icons-material/Today';
+import BatteryStdIcon from '@mui/icons-material/BatteryStd';
+import useDeviceExtras from '../util/useDeviceExtras';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
 import KeyIcon from '@mui/icons-material/VpnKey';
 import SensorsIcon from '@mui/icons-material/Sensors';
@@ -217,6 +220,7 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
   const distanceUnit = useAttributePreference('distanceUnit', 'km');
   const attributes = position?.attributes || {};
   const state = getDeviceState(device, position);
+  const extras = useDeviceExtras(deviceId, attributes.ignition);
   const expiryDays = daysUntil(device?.expirationTime);
 
   const stateLabel = {
@@ -228,9 +232,9 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
 
   let powerText = '--';
   if (attributes.power != null) {
-    powerText = formatVoltage(attributes.power, t);
-  } else if (attributes.batteryLevel != null) {
-    powerText = formatPercentage(attributes.batteryLevel);
+    powerText = `${Number(attributes.power).toFixed(1)} V`;
+  } else if (attributes.battery != null) {
+    powerText = formatVoltage(attributes.battery, t);
   }
 
   const infoItems = position
@@ -248,9 +252,7 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
           icon: <KeyIcon />,
           title: t('xmAcc'),
           value: attributes.hasOwnProperty('ignition')
-            ? attributes.ignition
-              ? t('xmAccOn')
-              : t('xmAccOff')
+            ? `${attributes.ignition ? t('xmAccOn') : t('xmAccOff')}${extras.accSince ? ` (${sinceNow(extras.accSince)})` : ''}`
             : '--',
           color: attributes.ignition ? stateColors.moving : undefined,
         },
@@ -277,9 +279,29 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
         {
           icon: <RouteOutlinedIcon />,
           title: t('xmMileage'),
+          value: (
+            <>
+              {attributes.totalDistance != null
+                ? formatDistance(attributes.totalDistance, distanceUnit, t)
+                : '--'}
+              {!deviceReadonly && (
+                <IconButton
+                  size="small"
+                  sx={{ p: 0.25, ml: 0.5 }}
+                  onClick={() => navigate(`/settings/accumulators/${deviceId}`)}
+                >
+                  <EditIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              )}
+            </>
+          ),
+        },
+        {
+          icon: <TodayIcon />,
+          title: t('xmTodayMileage'),
           value:
-            attributes.totalDistance != null
-              ? formatDistance(attributes.totalDistance, distanceUnit, t)
+            extras.todayDistance != null
+              ? formatDistance(extras.todayDistance, distanceUnit, t)
               : '--',
         },
         {
@@ -291,6 +313,11 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
           icon: <SatelliteAltIcon />,
           title: t('xmSatellites'),
           value: attributes.sat ?? '--',
+        },
+        {
+          icon: <BatteryStdIcon />,
+          title: t('xmBackupBattery'),
+          value: attributes.batteryLevel != null ? formatPercentage(attributes.batteryLevel) : '--',
         },
       ]
     : [];
@@ -386,6 +413,7 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
                         latitude={position.latitude}
                         longitude={position.longitude}
                         originalAddress={position.address}
+                        auto
                       />
                     </Typography>
                     <Link component={RouterLink} to={`/position/${position.id}`} variant="body2">

@@ -7,6 +7,7 @@ import { mapIconKey } from './core/preloadImages';
 import { useAttributePreference } from '../common/util/preferences';
 import { fromMapCoordinates } from './core/mapUtil';
 import useDeviceIcons from './core/useDeviceIcons';
+import { getDeviceState } from '../common/util/xmartStatus';
 
 const MapPositionMarkers = ({
   positions,
@@ -57,6 +58,23 @@ const MapPositionMarkers = ({
       ? position.attributes.color || getStatusColor(device.status)
       : 'neutral';
     const titles = { name: device.name, fixTime: formatTime(position.fixTime, 'seconds') };
+    const useCar =
+      showStatus &&
+      !deviceIcons[device.id] &&
+      ['car', 'default', null, undefined].includes(device.category);
+    if (useCar) {
+      return {
+        id: position.id,
+        deviceId: position.deviceId,
+        latitude: position.latitude,
+        longitude: position.longitude,
+        image: `xmcar-${getDeviceState(device, position)}`,
+        title: titles[titleField || 'name'],
+        rotation: position.course,
+        rotate: true,
+        direction: false,
+      };
+    }
     return {
       id: position.id,
       deviceId: position.deviceId,

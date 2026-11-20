@@ -26,6 +26,21 @@ export default defineConfig(() => ({
       workbox: {
         navigateFallbackDenylist: [/\/api(\/|$)/],
         globPatterns: ['**/*.{js,css,html,ttf,woff,woff2,mp3}'],
+        // XMart: keep viewed map tiles, styles and fonts on the device so the map opens fast
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) =>
+              /(^|\.)(openfreemap\.org|tile\.openstreetmap\.org|basemaps\.cartocdn\.com|arcgisonline\.com|google\.com|cdn\.traccar\.com)$/.test(
+                url.hostname,
+              ),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'xm-map-tiles',
+              expiration: { maxEntries: 5000, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
       manifest: {
         short_name: '${title}',

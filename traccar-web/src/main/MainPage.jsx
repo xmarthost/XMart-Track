@@ -1,14 +1,16 @@
-import { lazy, Suspense, useState, useCallback, useEffect } from 'react';
+import { lazy, Suspense, useState, useCallback, useEffect, useRef } from 'react';
 import { Paper } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import DeviceList from './DeviceList';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import MonitorPanel from './xmart/MonitorPanel';
 import MobileMonitor from '../mobile/MobileMonitor';
+import MapSideControls from '../map/control/MapSideControls';
 import StatusCard from '../common/components/StatusCard';
 import { devicesActions } from '../store';
 import usePersistedState from '../common/util/usePersistedState';
@@ -98,6 +100,49 @@ const MainPage = () => {
   const mapOnSelect = useAttributePreference('mapOnSelect', true);
 
   const selectedDeviceId = useSelector((state) => state.devices.selectedId);
+  const devicesLoaded = useSelector((state) => state.devices.loaded);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlDeviceId = Number(searchParams.get('device')) || null;
+
+  // URL -> selection (open a shared or refreshed link on the same vehicle)
+  const pendingUrlDeviceRef = useRef(urlDeviceId);
+  useEffect(() => {
+    if (devicesLoaded && urlDeviceId && urlDeviceId !== selectedDeviceId) {
+      pendingUrlDeviceRef.current = urlDeviceId;
+      dispatch(devicesActions.selectId(urlDeviceId));
+    }
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
+  }, [devicesLoaded, urlDeviceId]);
+
+  // selection -> URL
+  useEffect(() => {
+    if (!devicesLoaded) return;
+    if (pendingUrlDeviceRef.current) {
+      if (selectedDeviceId === pendingUrlDeviceRef.current) {
+        pendingUrlDeviceRef.current = null;
+      }
+      return;
+    }
+    setSearchParams(
+      (previous) => {
+        const current = Number(previous.get('device')) || null;
+        if (current === (selectedDeviceId || null)) {
+          return previous;
+        }
+        const next = new URLSearchParams(previous);
+        if (selectedDeviceId) {
+          next.set('device', selectedDeviceId);
+          if (!desktop) {
+            next.set('view', 'map');
+          }
+        } else {
+          next.delete('device');
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  }, [selectedDeviceId, devicesLoaded, setSearchParams, desktop]);
   const positions = useSelector((state) => state.session.positions);
   const [filteredPositions, setFilteredPositions] = useState([]);
   const selectedPosition = filteredPositions.find(
@@ -170,6 +215,12 @@ const MainPage = () => {
             onEventsClick={onEventsClick}
           />
         </Suspense>
+      )}
+      {desktop && (
+        <MapSideControls
+          positions={filteredPositions}
+          left={devicesOpen ? `calc(${theme.dimensions.drawerWidthDesktop} + 32px)` : 32}
+        />
       )}
       {desktop ? (
         <div

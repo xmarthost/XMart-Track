@@ -57,6 +57,19 @@ const groups = [
         input: 'xmSosNumbers',
       },
       {
+        key: 'timer',
+        label: 'xmUploadInterval',
+        type: 'custom',
+        data: 'TIMER,{value}#',
+        input: 'xmUploadIntervalInput',
+      },
+      {
+        key: 'gmt',
+        label: 'xmTimezoneCommand',
+        type: 'custom',
+        data: 'GMT,E,5,0#',
+      },
+      {
         key: 'center',
         label: 'xmSetCenter',
         type: 'custom',

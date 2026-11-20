@@ -112,6 +112,25 @@ export const eventIconKey = (type) => (eventIcons.hasOwnProperty(type) ? type : 
 
 export const mapImages = {};
 
+// XMart: top-view car marker, rotated by course on the map
+export const carColors = {
+  moving: '#16A34A',
+  static: '#2563EB',
+  offline: '#DC2626',
+  inactive: '#94A3B8',
+};
+
+const xmCarSvg = (color) =>
+  `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'>
+<ellipse cx='24' cy='43' rx='10' ry='3' fill='rgba(0,0,0,0.22)'/>
+<rect x='13.5' y='4' width='21' height='39' rx='8.5' fill='${color}' stroke='#ffffff' stroke-width='2'/>
+<path d='M16.5 14.5 Q24 10.5 31.5 14.5 L30 20.5 Q24 18.5 18 20.5 Z' fill='#0f172a' opacity='0.85'/>
+<rect x='17.5' y='21.5' width='13' height='10' rx='2' fill='#ffffff' opacity='0.28'/>
+<path d='M18 33 Q24 35 30 33 L31 38.5 Q24 40.5 17 38.5 Z' fill='#0f172a' opacity='0.7'/>
+<rect x='15.5' y='5.5' width='4' height='2.2' rx='1' fill='#fde68a'/>
+<rect x='28.5' y='5.5' width='4' height='2.2' rx='1' fill='#fde68a'/>
+</svg>`)}`;
+
 const theme = createTheme({
   palette: {
     neutral: { main: grey[500] },
@@ -122,6 +141,11 @@ export default async () => {
   const background = await loadImage(backgroundSvg);
   mapImages.background = await prepareIcon(background);
   mapImages.direction = await prepareIcon(await loadImage(directionSvg));
+  await Promise.all(
+    Object.entries(carColors).map(async ([state, color]) => {
+      mapImages[`xmcar-${state}`] = prepareIcon(null, await loadImage(xmCarSvg(color)));
+    }),
+  );
   await Promise.all(
     Object.keys(mapIcons).map(async (key) => {
       const results = [];

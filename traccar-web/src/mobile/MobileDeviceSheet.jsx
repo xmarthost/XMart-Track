@@ -20,6 +20,9 @@ import KeyIcon from '@mui/icons-material/VpnKey';
 import BoltIcon from '@mui/icons-material/Bolt';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
+import BatteryStdIcon from '@mui/icons-material/BatteryStd';
+import SatelliteAltIcon from '@mui/icons-material/SatelliteAlt';
+import useDeviceExtras from '../common/util/useDeviceExtras';
 import AddressValue from '../common/components/AddressValue';
 import { useTranslation } from '../common/components/LocalizationProvider';
 import { useAttributePreference } from '../common/util/preferences';
@@ -146,6 +149,7 @@ const MobileDeviceSheet = ({ deviceId, onClose }) => {
 
   const device = useSelector((state) => state.devices.items[deviceId]);
   const position = useSelector((state) => state.session.positions[deviceId]);
+  const extras = useDeviceExtras(deviceId, position?.attributes?.ignition);
   const speedUnit = useAttributePreference('speedUnit', 'kmh');
   const distanceUnit = useAttributePreference('distanceUnit', 'km');
 
@@ -239,6 +243,7 @@ const MobileDeviceSheet = ({ deviceId, onClose }) => {
                 latitude={position.latitude}
                 longitude={position.longitude}
                 originalAddress={position.address}
+                auto
               />
             </Typography>
             <IconButton
@@ -275,14 +280,30 @@ const MobileDeviceSheet = ({ deviceId, onClose }) => {
                 }
               >
                 {attributes.hasOwnProperty('ignition')
-                  ? `${t('xmAcc')} ${attributes.ignition ? t('xmAccOn') : t('xmAccOff')}`
+                  ? `${t('xmAcc')} ${attributes.ignition ? t('xmAccOn') : t('xmAccOff')}${extras.accSince ? ` (${sinceNow(extras.accSince)})` : ''}`
                   : '--'}
               </Typography>
             </div>
-            {attributes.power != null && (
+            {(attributes.power != null || attributes.battery != null) && (
               <div className={classes.row}>
                 <BoltIcon />
-                <Typography variant="body2">{formatVoltage(attributes.power, t)}</Typography>
+                <Typography variant="body2">
+                  {attributes.power != null
+                    ? `${Number(attributes.power).toFixed(1)} V`
+                    : formatVoltage(attributes.battery, t)}
+                </Typography>
+              </div>
+            )}
+            {attributes.batteryLevel != null && (
+              <div className={classes.row}>
+                <BatteryStdIcon />
+                <Typography variant="body2">{`${attributes.batteryLevel}%`}</Typography>
+              </div>
+            )}
+            {attributes.sat != null && (
+              <div className={classes.row}>
+                <SatelliteAltIcon />
+                <Typography variant="body2">{attributes.sat}</Typography>
               </div>
             )}
           </div>
@@ -320,6 +341,22 @@ const MobileDeviceSheet = ({ deviceId, onClose }) => {
         <Typography variant="body2" color="textSecondary">
           {attributes.totalDistance != null
             ? formatDistance(attributes.totalDistance, distanceUnit, t)
+            : '--'}
+          <IconButton
+            size="small"
+            color="primary"
+            sx={{ p: 0.25, ml: 0.5 }}
+            onClick={() => navigate(`/settings/accumulators/${deviceId}`)}
+          >
+            <EditIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Typography>
+      </div>
+      <div className={classes.kv}>
+        <Typography variant="body2">{t('xmTodayMileage')}</Typography>
+        <Typography variant="body2" color="textSecondary">
+          {extras.todayDistance != null
+            ? formatDistance(extras.todayDistance, distanceUnit, t)
             : '--'}
         </Typography>
       </div>

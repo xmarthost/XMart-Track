@@ -15,6 +15,7 @@ import useFeatures from './common/util/useFeatures';
 import fetchOrThrow from './common/util/fetchOrThrow';
 import AppHeader from './common/components/xmart/AppHeader';
 import NavRail from './common/components/xmart/NavRail';
+import EventNotifier from './common/components/xmart/EventNotifier';
 
 const useStyles = makeStyles()(() => ({
   page: {
@@ -100,6 +101,7 @@ const App = () => {
       <CachingController />
       <UpdateController />
       <MotionController />
+      <EventNotifier />
       {desktop ? (
         <div className={classes.shell}>
           <AppHeader />

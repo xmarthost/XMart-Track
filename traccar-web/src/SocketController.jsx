@@ -61,8 +61,9 @@ const SocketController = () => {
       ) {
         playAlarm();
       }
+      // XMart: event toasts are shown by EventNotifier (short text, opens the event on the map)
       events.forEach((event) => {
-        if (event.attributes.message) {
+        if (event.attributes.message && !event.deviceId) {
           dispatch(
             messagesActions.push({
               message: event.attributes.message,

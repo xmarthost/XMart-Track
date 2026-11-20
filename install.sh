@@ -147,6 +147,29 @@ XML
   chmod 600 "$APP_DIR/conf/traccar.xml"
 fi
 
+# ---------------------------------------------------------------- config updates
+# Applied on every run so updates bring new settings to existing installations.
+set_config() {
+  python3 - "$APP_DIR/conf/traccar.xml" "$1" "$2" <<'PY'
+import re, sys
+from xml.sax.saxutils import escape
+path, key, value = sys.argv[1:4]
+text = open(path, encoding='utf-8').read()
+entry = "<entry key='%s'>%s</entry>" % (key, escape(value))
+pattern = re.compile(r"<entry key=['\"]%s['\"]>.*?</entry>" % re.escape(key), re.S)
+if pattern.search(text):
+    text = pattern.sub(lambda _: entry, text)
+else:
+    text = text.replace("</properties>", "    %s\n</properties>" % entry)
+open(path, 'w', encoding='utf-8').write(text)
+PY
+}
+log "Updating server settings"
+set_config geocoder.format '%f'
+set_config geocoder.cacheSize '20000'
+set_config processing.copyAttributes.enable 'true'
+set_config processing.copyAttributes 'power,battery,batteryLevel,ignition,sat,rssi,charge,blocked,odometer'
+
 # ---------------------------------------------------------------- service
 log "Configuring service"
 id xmarttrack >/dev/null 2>&1 || useradd --system --home "$APP_DIR" --shell /usr/sbin/nologin xmarttrack

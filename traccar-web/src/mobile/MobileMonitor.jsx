@@ -1,12 +1,13 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Paper, Tab, Tabs, Typography } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
 import { devicesActions } from '../store';
 import { useTranslation } from '../common/components/LocalizationProvider';
-import usePersistedState from '../common/util/usePersistedState';
+import { useSearchParams } from 'react-router-dom';
 import MonitorPanel from '../main/xmart/MonitorPanel';
 import MobileDeviceSheet from './MobileDeviceSheet';
+import MapSideControls from '../map/control/MapSideControls';
 import xmartIcon from '../resources/images/xmart-icon.png';
 
 const MainMap = lazy(() => import('../main/MainMap'));
@@ -62,17 +63,24 @@ const MobileMonitor = ({ panelProps, filteredPositions, selectedPosition, onEven
   const dispatch = useDispatch();
   const t = useTranslation();
 
-  const [view, setView] = usePersistedState('xmMobileView', 'list');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = searchParams.get('view') === 'map' ? 'map' : 'list';
+  const setView = useCallback(
+    (value) => {
+      setSearchParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          next.set('view', value);
+          return next;
+        },
+        { replace: false },
+      );
+    },
+    [setSearchParams],
+  );
   const selectedId = useSelector((state) => state.devices.selectedId);
-  const selectTime = useSelector((state) => state.devices.selectTime);
   const user = useSelector((state) => state.session.user);
   const customer = useSelector((state) => state.devices.customer);
-
-  useEffect(() => {
-    if (selectedId && selectTime) {
-      setView('map');
-    }
-  }, [selectedId, selectTime, setView]);
 
   return (
     <div className={classes.root}>
@@ -103,6 +111,7 @@ const MobileMonitor = ({ panelProps, filteredPositions, selectedPosition, onEven
               onEventsClick={onEventsClick}
             />
           </Suspense>
+          <MapSideControls positions={filteredPositions} />
           {selectedId && (
             <MobileDeviceSheet
               deviceId={selectedId}
