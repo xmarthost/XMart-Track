@@ -64,6 +64,8 @@ const AnnouncementPage = lazy(() => import('./settings/AnnouncementPage'));
 const EmulatorPage = lazy(() => import('./other/EmulatorPage'));
 const StreamPage = lazy(() => import('./other/StreamPage'));
 const AuditPage = lazy(() => import('./reports/AuditPage'));
+const TrackingPage = lazy(() => import('./other/TrackingPage'));
+const IntegrationsPage = lazy(() => import('./settings/IntegrationsPage'));
 
 const Navigation = () => {
   const dispatch = useDispatch();
@@ -135,6 +137,7 @@ const Navigation = () => {
           <Route path="network/:positionId" element={<NetworkPage />} />
           <Route path="event/:id" element={<EventPage />} />
           <Route path="replay" element={<ReplayPage />} />
+          <Route path="tracking/:id" element={<TrackingPage />} />
           <Route path="geofences" element={<GeofencesPage />} />
           <Route path="emulator" element={<EmulatorPage />} />
           <Route path="stream" element={<StreamPage />} />
@@ -176,6 +179,7 @@ const Navigation = () => {
             <Route path="notification" element={<NotificationPage />} />
             <Route path="preferences" element={<PreferencesPage />} />
             <Route path="server" element={<ServerPage />} />
+            <Route path="integrations" element={<IntegrationsPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="user/:id/connections" element={<UserConnectionsPage />} />
             <Route path="user/:id" element={<UserPage />} />

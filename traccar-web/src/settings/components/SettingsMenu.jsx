@@ -15,6 +15,7 @@ import HelpIcon from '@mui/icons-material/Help';
 import PaymentIcon from '@mui/icons-material/Payment';
 import CampaignIcon from '@mui/icons-material/Campaign';
 import CalculateIcon from '@mui/icons-material/Calculate';
+import KeyIcon from '@mui/icons-material/VpnKey';
 import { useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useTranslation } from '../../common/components/LocalizationProvider';
@@ -143,6 +144,14 @@ const SettingsMenu = () => {
               icon={<CampaignIcon />}
               selected={location.pathname === '/settings/announcement'}
             />
+            {admin && (
+              <MenuItem
+                title={t('xmApiSettings')}
+                link="/settings/integrations"
+                icon={<KeyIcon />}
+                selected={location.pathname === '/settings/integrations'}
+              />
+            )}
             {admin && (
               <MenuItem
                 title={t('settingsServer')}

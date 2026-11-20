@@ -8,6 +8,7 @@ import { sessionActions } from '../../store';
 import fetchOrThrow from '../util/fetchOrThrow';
 
 import en from '../../resources/l10n/en.json';
+import xmartStrings from '../../resources/xmartStrings';
 import 'dayjs/locale/en';
 
 const localeLoaders = import.meta.glob([
@@ -242,8 +243,12 @@ export const useLocalization = () => use(LocalizationContext);
 
 export const useTranslation = () => {
   const context = use(LocalizationContext);
-  const { data } = context.languages[context.language];
-  return useMemo(() => (key) => data[key], [data]);
+  const { language } = context;
+  const { data } = context.languages[language];
+  return useMemo(
+    () => (key) => data[key] ?? xmartStrings[language]?.[key] ?? xmartStrings.en[key] ?? en[key],
+    [data, language],
+  );
 };
 
 export const useTranslationKeys = (predicate) => {

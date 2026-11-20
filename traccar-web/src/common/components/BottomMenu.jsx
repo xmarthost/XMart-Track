@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Paper,
@@ -17,15 +17,13 @@ import MapIcon from '@mui/icons-material/Map';
 import PersonIcon from '@mui/icons-material/Person';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 
-import { sessionActions } from '../../store';
 import { useTranslation } from './LocalizationProvider';
 import { useRestriction } from '../util/permissions';
-import { nativePostMessage } from './NativeInterface';
+import useLogout from '../util/useLogout';
 
 const BottomMenu = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const dispatch = useDispatch();
   const t = useTranslation();
 
   const readonly = useRestriction('readonly');
@@ -36,6 +34,7 @@ const BottomMenu = () => {
   const selectedDeviceId = useSelector((state) => state.devices.selectedId);
 
   const [anchorEl, setAnchorEl] = useState(null);
+  const logout = useLogout();
 
   const currentSelection = () => {
     if (location.pathname === `/settings/user/${user.id}`) {
@@ -60,34 +59,7 @@ const BottomMenu = () => {
 
   const handleLogout = async () => {
     setAnchorEl(null);
-
-    const notificationToken = window.localStorage.getItem('notificationToken');
-    if (notificationToken && !user.readonly) {
-      window.localStorage.removeItem('notificationToken');
-      const tokens = user.attributes.notificationTokens?.split(',') || [];
-      if (tokens.includes(notificationToken)) {
-        const updatedUser = {
-          ...user,
-          attributes: {
-            ...user.attributes,
-            notificationTokens:
-              tokens.length > 1
-                ? tokens.filter((it) => it !== notificationToken).join(',')
-                : undefined,
-          },
-        };
-        await fetch(`api/users/${user.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedUser),
-        });
-      }
-    }
-
-    await fetch('api/session', { method: 'DELETE' });
-    nativePostMessage('logout');
-    navigate('/login');
-    dispatch(sessionActions.updateUser(null));
+    await logout();
   };
 
   const handleSelection = (event, value) => {

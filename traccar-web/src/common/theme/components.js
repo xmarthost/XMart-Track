@@ -13,6 +13,10 @@ export default {
   },
   MuiButton: {
     styleOverrides: {
+      root: {
+        textTransform: 'none',
+        fontWeight: 600,
+      },
       sizeMedium: {
         height: '40px',
       },

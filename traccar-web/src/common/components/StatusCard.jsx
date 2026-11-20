@@ -8,30 +8,43 @@ import {
   Typography,
   CardActions,
   IconButton,
-  Table,
-  TableBody,
-  TableRow,
-  TableCell,
   Menu,
   MenuItem,
   CardMedia,
-  TableFooter,
   Link,
   Tooltip,
 } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
 import CloseIcon from '@mui/icons-material/Close';
-import RouteIcon from '@mui/icons-material/Route';
 import SendIcon from '@mui/icons-material/Send';
 import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import PendingIcon from '@mui/icons-material/Pending';
+import NearMeIcon from '@mui/icons-material/NearMe';
+import HistoryIcon from '@mui/icons-material/History';
+import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
+import StreetviewIcon from '@mui/icons-material/Streetview';
+import ShareIcon from '@mui/icons-material/Share';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
+import KeyIcon from '@mui/icons-material/VpnKey';
+import SensorsIcon from '@mui/icons-material/Sensors';
+import GpsFixedIcon from '@mui/icons-material/GpsFixed';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
+import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined';
+import SpeedIcon from '@mui/icons-material/Speed';
+import SatelliteAltIcon from '@mui/icons-material/SatelliteAlt';
+import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
+import AddressValue from './AddressValue';
+import DriverValue from './DriverValue';
+import EngineControlDialog from './xmart/EngineControlDialog';
+import { formatDistance, formatPercentage, formatTime, formatVoltage } from '../util/formatter';
+import { speedFromKnots, speedUnitString } from '../util/converter';
+import { daysUntil, getDeviceState, sinceNow, stateColors } from '../util/xmartStatus';
 
 import { useTranslation } from './LocalizationProvider';
 import RemoveDialog from './RemoveDialog';
-import PositionValue from './PositionValue';
 import { useDeviceReadonly, useRestriction } from '../util/permissions';
-import usePositionAttributes from '../attributes/usePositionAttributes';
 import { devicesActions } from '../../store';
 import { useCatch, useCatchCallback } from '../../reactHelper';
 import { useAttributePreference } from '../util/preferences';
@@ -41,47 +54,96 @@ import mediaUrl from '../util/mediaUrl';
 const useStyles = makeStyles()((theme, { desktopPadding }) => ({
   card: {
     pointerEvents: 'auto',
-    width: theme.dimensions.popupMaxWidth,
+    width: 440,
+    maxWidth: 'calc(100vw - 32px)',
+    borderRadius: 10,
+  },
+  expiry: {
+    backgroundColor: '#FEF2F2',
+    color: theme.palette.error.main,
+    fontSize: '0.8rem',
+    padding: theme.spacing(0.5, 2),
   },
   header: {
     display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: theme.spacing(1, 1, 0, 2),
-    color: theme.palette.text.secondary,
+    gap: theme.spacing(1),
+    padding: theme.spacing(1.5, 1, 1, 2),
+    cursor: 'move',
+    borderBottom: `1px solid ${theme.palette.divider}`,
+  },
+  titleBlock: {
+    flex: 1,
+    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  title: {
+    fontWeight: 700,
+    fontSize: '1rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+  },
+  state: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.75),
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    whiteSpace: 'nowrap',
+  },
+  stateDot: {
+    width: 10,
+    height: 10,
+    borderRadius: '50%',
   },
   media: {
     height: theme.dimensions.popupImageHeight,
-    '& > div': {
-      color: theme.palette.common.white,
-      mixBlendMode: 'difference',
-    },
   },
   content: {
-    paddingTop: theme.spacing(1),
-    paddingBottom: theme.spacing(1),
+    padding: theme.spacing(1.5, 2),
     maxHeight: theme.dimensions.cardContentMaxHeight,
     overflow: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(1),
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    columnGap: theme.spacing(2),
+    rowGap: theme.spacing(1),
+  },
+  info: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    minWidth: 0,
+  },
+  infoIcon: {
+    display: 'flex',
+    color: theme.palette.text.secondary,
+    '& svg': {
+      fontSize: 18,
+    },
+  },
+  address: {
+    flex: 1,
+    minWidth: 0,
   },
   icon: {
     width: '25px',
     height: '25px',
     filter: 'brightness(0) invert(1)',
   },
-  table: {
-    '& .MuiTableCell-sizeSmall': {
-      paddingLeft: 0,
-      paddingRight: 0,
-    },
-    '& .MuiTableCell-sizeSmall:first-of-type': {
-      paddingRight: theme.spacing(1),
-    },
-  },
-  cell: {
-    borderBottom: 'none',
-  },
   actions: {
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
+    borderTop: `1px solid ${theme.palette.divider}`,
+    padding: theme.spacing(0.5, 1),
+    '& .MuiIconButton-root:not(.MuiIconButton-colorError):not(.MuiIconButton-colorSuccess)': {
+      color: theme.palette.primary.main,
+    },
   },
   root: {
     pointerEvents: 'none',
@@ -100,23 +162,6 @@ const useStyles = makeStyles()((theme, { desktopPadding }) => ({
   },
 }));
 
-const StatusRow = ({ name, content }) => {
-  const { classes } = useStyles({ desktopPadding: 0 });
-
-  return (
-    <TableRow>
-      <TableCell className={classes.cell}>
-        <Typography variant="body2">{name}</Typography>
-      </TableCell>
-      <TableCell className={classes.cell}>
-        <Typography variant="body2" color="textSecondary">
-          {content}
-        </Typography>
-      </TableCell>
-    </TableRow>
-  );
-};
-
 const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPadding = 0 }) => {
   const { classes, cx } = useStyles({ desktopPadding });
   const navigate = useNavigate();
@@ -132,18 +177,14 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
 
   const deviceImage = device?.attributes?.deviceImage;
 
-  const positionAttributes = usePositionAttributes(t);
-  const positionItems = useAttributePreference(
-    'positionItems',
-    'fixTime,address,speed,totalDistance',
-  );
-
   const navigationAppLink = useAttributePreference('navigationAppLink');
   const navigationAppTitle = useAttributePreference('navigationAppTitle');
 
   const [anchorEl, setAnchorEl] = useState(null);
 
   const [removing, setRemoving] = useState(false);
+  const [engine, setEngine] = useState(null);
+  const limitCommands = useRestriction('limitCommands');
 
   const handleRemove = useCatch(async (removed) => {
     if (removed) {
@@ -172,6 +213,88 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
     navigate(`/settings/geofence/${item.id}`);
   }, [navigate, position, t]);
 
+  const speedUnit = useAttributePreference('speedUnit', 'kmh');
+  const distanceUnit = useAttributePreference('distanceUnit', 'km');
+  const attributes = position?.attributes || {};
+  const state = getDeviceState(device, position);
+  const expiryDays = daysUntil(device?.expirationTime);
+
+  const stateLabel = {
+    moving: t('xmMoving'),
+    static: t('xmStatic'),
+    offline: t('xmOffline'),
+    inactive: t('xmInactive'),
+  }[state];
+
+  let powerText = '--';
+  if (attributes.power != null) {
+    powerText = formatVoltage(attributes.power, t);
+  } else if (attributes.batteryLevel != null) {
+    powerText = formatPercentage(attributes.batteryLevel);
+  }
+
+  const infoItems = position
+    ? [
+        {
+          icon: <PersonOutlineIcon />,
+          title: t('sharedDriver'),
+          value: attributes.driverUniqueId ? (
+            <DriverValue driverUniqueId={attributes.driverUniqueId} />
+          ) : (
+            device?.contact || '--'
+          ),
+        },
+        {
+          icon: <KeyIcon />,
+          title: t('xmAcc'),
+          value: attributes.hasOwnProperty('ignition')
+            ? attributes.ignition
+              ? t('xmAccOn')
+              : t('xmAccOff')
+            : '--',
+          color: attributes.ignition ? stateColors.moving : undefined,
+        },
+        {
+          icon: <SensorsIcon />,
+          title: t('xmLastUpdate'),
+          value: formatTime(device?.lastUpdate),
+        },
+        {
+          icon: <GpsFixedIcon />,
+          title: t('xmPositioning'),
+          value: position.valid ? 'GPS' : 'LBS',
+        },
+        {
+          icon: <ScheduleIcon />,
+          title: t('xmFixTime'),
+          value: formatTime(position.fixTime),
+        },
+        {
+          icon: <BatteryChargingFullIcon />,
+          title: t('xmPower'),
+          value: powerText,
+        },
+        {
+          icon: <RouteOutlinedIcon />,
+          title: t('xmMileage'),
+          value:
+            attributes.totalDistance != null
+              ? formatDistance(attributes.totalDistance, distanceUnit, t)
+              : '--',
+        },
+        {
+          icon: <SpeedIcon />,
+          title: t('positionSpeed'),
+          value: `${Math.round(speedFromKnots(position.speed, speedUnit))} ${speedUnitString(speedUnit, t)}`,
+        },
+        {
+          icon: <SatelliteAltIcon />,
+          title: t('xmSatellites'),
+          value: attributes.sat ?? '--',
+        },
+      ]
+    : [];
+
   return (
     <>
       <div className={classes.root}>
@@ -182,106 +305,178 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
             dragHandleClassName="draggable-header"
             style={{ position: 'relative' }}
           >
-            <Card elevation={3} className={classes.card}>
-              <CardMedia
-                className={cx('draggable-header', deviceImage && classes.media)}
-                image={mediaUrl(device?.uniqueId, deviceImage)}
-              >
-                <div className={classes.header}>
-                  <Typography variant="body2" color="inherit">
-                    {device.name}
-                  </Typography>
-                  <IconButton size="small" color="inherit" onClick={onClose} onTouchStart={onClose}>
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
+            <Card elevation={6} className={classes.card}>
+              {deviceImage && (
+                <CardMedia
+                  className={cx('draggable-header', classes.media)}
+                  image={mediaUrl(device?.uniqueId, deviceImage)}
+                />
+              )}
+              {expiryDays !== null && expiryDays <= 30 && (
+                <div className={classes.expiry}>
+                  {expiryDays < 0
+                    ? t('xmExpired')
+                    : t('xmExpiresIn').replace('{days}', String(expiryDays))}
                 </div>
-              </CardMedia>
+              )}
+              <div className={cx('draggable-header', classes.header)}>
+                <div className={classes.titleBlock}>
+                  <Typography className={classes.title} noWrap>
+                    {device.name}
+                    {!deviceReadonly && (
+                      <IconButton
+                        size="small"
+                        onClick={() => navigate(`/settings/device/${deviceId}`)}
+                        disabled={disableActions}
+                      >
+                        <EditIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    )}
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    {device.uniqueId}
+                    {device.phone ? ` • ${device.phone}` : ''}
+                  </Typography>
+                </div>
+                <div className={classes.state} style={{ color: stateColors[state] }}>
+                  <span
+                    className={classes.stateDot}
+                    style={{ backgroundColor: stateColors[state] }}
+                  />
+                  {state === 'offline'
+                    ? `${stateLabel} (${sinceNow(device.lastUpdate)})`
+                    : stateLabel}
+                </div>
+                <IconButton size="small" onClick={onClose} onTouchStart={onClose}>
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </div>
               {position && (
                 <CardContent className={classes.content}>
-                  <Table size="small" className={classes.table}>
-                    <TableBody>
-                      {positionItems
-                        .split(',')
-                        .filter(
-                          (key) =>
-                            position.hasOwnProperty(key) || position.attributes.hasOwnProperty(key),
-                        )
-                        .map((key) => (
-                          <StatusRow
-                            key={key}
-                            name={positionAttributes[key]?.name || key}
-                            content={
-                              <PositionValue
-                                position={position}
-                                property={position.hasOwnProperty(key) ? key : null}
-                                attribute={position.hasOwnProperty(key) ? null : key}
-                              />
-                            }
-                          />
-                        ))}
-                    </TableBody>
-                    <TableFooter>
-                      <TableRow>
-                        <TableCell colSpan={2} className={classes.cell}>
-                          <Typography variant="body2">
-                            <Link component={RouterLink} to={`/position/${position.id}`}>
-                              {t('sharedShowDetails')}
-                            </Link>
+                  <div className={classes.grid}>
+                    {infoItems.map((item) => (
+                      <Tooltip key={item.title} title={item.title} placement="top-start">
+                        <div className={classes.info}>
+                          <span className={classes.infoIcon}>{item.icon}</span>
+                          <Typography
+                            variant="body2"
+                            noWrap
+                            style={item.color ? { color: item.color, fontWeight: 600 } : undefined}
+                          >
+                            {item.value}
                           </Typography>
-                        </TableCell>
-                      </TableRow>
-                    </TableFooter>
-                  </Table>
+                        </div>
+                      </Tooltip>
+                    ))}
+                  </div>
+                  <div className={classes.info}>
+                    <span className={classes.infoIcon}>
+                      <PlaceOutlinedIcon />
+                    </span>
+                    <Typography variant="body2">
+                      {`${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`}
+                    </Typography>
+                  </div>
+                  <div className={classes.info} style={{ alignItems: 'flex-start' }}>
+                    <span className={classes.infoIcon}>
+                      <HomeOutlinedIcon />
+                    </span>
+                    <Typography variant="body2" className={classes.address}>
+                      <AddressValue
+                        latitude={position.latitude}
+                        longitude={position.longitude}
+                        originalAddress={position.address}
+                      />
+                    </Typography>
+                    <Link component={RouterLink} to={`/position/${position.id}`} variant="body2">
+                      {t('sharedShowDetails')}
+                    </Link>
+                  </div>
                 </CardContent>
               )}
               <CardActions className={classes.actions} disableSpacing>
+                <Tooltip title={t('xmTracking')}>
+                  <span>
+                    <IconButton
+                      onClick={() => navigate(`/tracking/${deviceId}`)}
+                      disabled={disableActions || !position}
+                    >
+                      <NearMeIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title={t('xmPlayback')}>
+                  <span>
+                    <IconButton
+                      onClick={() => navigate(`/replay?deviceId=${deviceId}`)}
+                      disabled={disableActions || !position}
+                    >
+                      <HistoryIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title={t('xmCommands')}>
+                  <span>
+                    <IconButton
+                      onClick={() => navigate(`/settings/device/${deviceId}/command`)}
+                      disabled={disableActions || limitCommands}
+                    >
+                      <SendIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title={attributes.blocked ? t('xmEngineRestore') : t('xmEngineCut')}>
+                  <span>
+                    <IconButton
+                      color={attributes.blocked ? 'success' : 'error'}
+                      onClick={() => setEngine(attributes.blocked ? 'engineResume' : 'engineStop')}
+                      disabled={disableActions || readonly || limitCommands}
+                    >
+                      <PowerSettingsNewIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title={t('xmStreetView')}>
+                  <span>
+                    <IconButton
+                      component="a"
+                      target="_blank"
+                      disabled={!position}
+                      href={
+                        position
+                          ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${position.latitude}%2C${position.longitude}&heading=${position.course}`
+                          : undefined
+                      }
+                    >
+                      <StreetviewIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                {!shareDisabled && !user.temporary && (
+                  <Tooltip title={t('sharedShare')}>
+                    <span>
+                      <IconButton
+                        onClick={() => navigate(`/settings/device/${deviceId}/share`)}
+                        disabled={disableActions}
+                      >
+                        <ShareIcon />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                )}
                 <Tooltip title={t('sharedExtra')}>
-                  <IconButton
-                    color="secondary"
-                    onClick={(e) => setAnchorEl(e.currentTarget)}
-                    disabled={!position}
-                  >
-                    <PendingIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title={t('reportReplay')}>
-                  <IconButton
-                    onClick={() => navigate(`/replay?deviceId=${deviceId}`)}
-                    disabled={disableActions || !position}
-                  >
-                    <RouteIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title={t('commandTitle')}>
-                  <IconButton
-                    onClick={() => navigate(`/settings/device/${deviceId}/command`)}
-                    disabled={disableActions}
-                  >
-                    <SendIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title={t('sharedEdit')}>
-                  <IconButton
-                    onClick={() => navigate(`/settings/device/${deviceId}`)}
-                    disabled={disableActions || deviceReadonly}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title={t('sharedRemove')}>
-                  <IconButton
-                    color="error"
-                    onClick={() => setRemoving(true)}
-                    disabled={disableActions || deviceReadonly}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
+                  <span>
+                    <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} disabled={!position}>
+                      <MoreHorizIcon />
+                    </IconButton>
+                  </span>
                 </Tooltip>
               </CardActions>
             </Card>
           </Rnd>
         )}
       </div>
+      <EngineControlDialog deviceId={deviceId} action={engine} onClose={() => setEngine(null)} />
       {position && (
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
           <MenuItem
@@ -323,9 +518,14 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
               {navigationAppTitle}
             </MenuItem>
           )}
-          {!shareDisabled && !user.temporary && (
-            <MenuItem onClick={() => navigate(`/settings/device/${deviceId}/share`)}>
-              <Typography color="secondary">{t('sharedShare')}</Typography>
+          {!disableActions && !deviceReadonly && (
+            <MenuItem
+              onClick={() => {
+                setAnchorEl(null);
+                setRemoving(true);
+              }}
+            >
+              <Typography color="error">{t('sharedRemove')}</Typography>
             </MenuItem>
           )}
         </Menu>

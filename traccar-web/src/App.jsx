@@ -13,11 +13,32 @@ import TermsDialog from './common/components/TermsDialog';
 import Loader from './common/components/Loader';
 import useFeatures from './common/util/useFeatures';
 import fetchOrThrow from './common/util/fetchOrThrow';
+import AppHeader from './common/components/xmart/AppHeader';
+import NavRail from './common/components/xmart/NavRail';
 
 const useStyles = makeStyles()(() => ({
   page: {
     flexGrow: 1,
     overflow: 'auto',
+  },
+  shell: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+  },
+  body: {
+    display: 'flex',
+    flex: 1,
+    minHeight: 0,
+  },
+  content: {
+    flex: 1,
+    minWidth: 0,
+    position: 'relative',
+    overflow: 'auto',
+    // makes position: fixed children (map sidebar, status card, page drawers)
+    // relative to the content area instead of the whole window
+    transform: 'translateZ(0)',
   },
   menu: {
     zIndex: 4,
@@ -79,9 +100,21 @@ const App = () => {
       <CachingController />
       <UpdateController />
       <MotionController />
-      <div className={classes.page}>
-        <Outlet />
-      </div>
+      {desktop ? (
+        <div className={classes.shell}>
+          <AppHeader />
+          <div className={classes.body}>
+            <NavRail />
+            <div className={classes.content}>
+              <Outlet />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className={classes.page}>
+          <Outlet />
+        </div>
+      )}
       {!desktop && !features.disableTabs && (
         <div className={classes.menu}>
           <BottomMenu />

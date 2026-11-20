@@ -13,6 +13,7 @@ export default (
 ) => {
   const groups = useSelector((state) => state.groups.items);
   const devices = useSelector((state) => state.devices.items);
+  const customer = useSelector((state) => state.devices.customer);
 
   useEffect(() => {
     const deviceGroups = (device) => {
@@ -25,7 +26,9 @@ export default (
       return groupIds;
     };
 
+    const customerIds = customer ? new Set(customer.deviceIds) : null;
     const filtered = Object.values(devices)
+      .filter((device) => !customerIds || customerIds.has(device.id))
       .filter((device) => !filter.statuses.length || filter.statuses.includes(device.status))
       .filter(
         (device) =>
@@ -60,7 +63,9 @@ export default (
     setFilteredPositions(
       filterMap
         ? filtered.map((device) => positions[device.id]).filter(Boolean)
-        : Object.values(positions),
+        : Object.values(positions).filter(
+            (position) => !customerIds || customerIds.has(position.deviceId),
+          ),
     );
   }, [
     keyword,
@@ -69,6 +74,7 @@ export default (
     filterMap,
     groups,
     devices,
+    customer,
     positions,
     setFilteredDevices,
     setFilteredPositions,

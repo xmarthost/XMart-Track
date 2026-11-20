@@ -8,6 +8,7 @@ import {
   ListItemText,
   Switch,
   Divider,
+  ListSubheader,
 } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
 import { createRoot } from 'react-dom/client';
@@ -40,7 +41,12 @@ const applyVisibility = (hidden) => {
   });
 };
 
-const useStyles = makeStyles()(() => ({
+const useStyles = makeStyles()((theme) => ({
+  subheader: {
+    lineHeight: '32px',
+    fontWeight: 700,
+    color: theme.palette.primary.main,
+  },
   button: {
     '&&': {
       display: 'flex',
@@ -109,18 +115,29 @@ const MapSwitcher = ({ styles, selectedId, onSelect }) => {
       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       transformOrigin={{ vertical: 'top', horizontal: 'right' }}
     >
-      {styles.map((style) => (
-        <MenuItem
-          key={style.id}
-          selected={style.id === selectedId}
-          onClick={() => {
-            onSelect(style.id);
-            setAnchorEl(null);
-          }}
-        >
-          {style.title}
-        </MenuItem>
-      ))}
+      {['free', 'paid'].flatMap((category) => {
+        const items = styles.filter((style) => (style.category || 'free') === category);
+        if (!items.length) {
+          return [];
+        }
+        return [
+          <ListSubheader key={`header-${category}`} className={classes.subheader}>
+            {category === 'free' ? t('xmFreeMaps') : t('xmPaidMaps')}
+          </ListSubheader>,
+          ...items.map((style) => (
+            <MenuItem
+              key={style.id}
+              selected={style.id === selectedId}
+              onClick={() => {
+                onSelect(style.id);
+                setAnchorEl(null);
+              }}
+            >
+              {style.title}
+            </MenuItem>
+          )),
+        ];
+      })}
       {titles.length > 0 && <Divider />}
       {titles.map((title) => (
         <MenuItem

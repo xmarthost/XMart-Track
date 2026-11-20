@@ -6,6 +6,7 @@ const { reducer, actions } = createSlice({
     items: {},
     selectedId: null,
     loaded: false,
+    customer: null,
   },
   reducers: {
     refresh(state, action) {
@@ -19,6 +20,9 @@ const { reducer, actions } = createSlice({
     selectId(state, action) {
       state.selectTime = Date.now();
       state.selectedId = action.payload;
+    },
+    setCustomer(state, action) {
+      state.customer = action.payload;
     },
     remove(state, action) {
       delete state.items[action.payload];

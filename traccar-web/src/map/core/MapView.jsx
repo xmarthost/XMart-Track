@@ -9,7 +9,7 @@ import MapSwitcher from '../control/MapSwitcher';
 import { useAttributePreference, usePreference } from '../../common/util/preferences';
 import usePersistedState from '../../common/util/usePersistedState';
 import { mapImages } from './preloadImages';
-import useMapStyles from './useMapStyles';
+import useMapStyles, { defaultActiveMapStyles } from './useMapStyles';
 import { useAsyncTask } from '../../reactHelper';
 
 const element = document.createElement('div');
@@ -76,10 +76,7 @@ const MapView = ({ children }) => {
   const mapReady = useMapReady();
 
   const mapStyles = useMapStyles();
-  const activeMapStyles = useAttributePreference(
-    'activeMapStyles',
-    'openFreeMap,locationIqStreets,locationIqDark',
-  );
+  const activeMapStyles = useAttributePreference('activeMapStyles', defaultActiveMapStyles);
   const [selectedStyleId, setSelectedStyleId] = usePersistedState(
     'selectedMapStyle',
     usePreference('map', 'openFreeMap'),
