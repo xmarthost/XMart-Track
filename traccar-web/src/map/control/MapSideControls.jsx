@@ -51,8 +51,8 @@ const MapSideControls = ({ left = 12, positions }) => {
   const t = useTranslation();
 
   const activeMapStyles = useAttributePreference('activeMapStyles', defaultActiveMapStyles);
-  const [selectedStyle, setSelectedStyle] = usePersistedState('selectedMapStyle', 'openFreeMap');
-  const [roadStyle, setRoadStyle] = usePersistedState('xmRoadStyle', 'openFreeMap');
+  const [selectedStyle, setSelectedStyle] = usePersistedState('selectedMapStyle', 'googleRoad');
+  const [roadStyle, setRoadStyle] = usePersistedState('xmRoadStyle', 'googleRoad');
   const selectedId = useSelector((state) => state.devices.selectedId);
   const selectedPosition = useSelector((state) =>
     selectedId ? state.session.positions[selectedId] : null,

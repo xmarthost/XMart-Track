@@ -32,11 +32,11 @@ const { reducer, actions } = createSlice({
     },
     updatePositions(state, action) {
       const liveRoutes =
-        state.user.attributes.mapLiveRoutes || state.server.attributes.mapLiveRoutes || 'none';
+        state.user.attributes.mapLiveRoutes || state.server.attributes.mapLiveRoutes || 'all';
       const liveRoutesLimit =
         state.user.attributes['web.liveRouteLength'] ||
         state.server.attributes['web.liveRouteLength'] ||
-        10;
+        300;
       action.payload.forEach((position) => {
         state.positions[position.deviceId] = position;
         if (liveRoutes !== 'none') {

@@ -130,6 +130,7 @@ export default {
     xmPositioning: 'Positioning',
     xmPower: 'Power',
     xmMileage: 'Mileage',
+    xmRefreshIn: 'Refresh in {seconds} seconds',
     xmSlow: 'Slow',
     xmMedium: 'Medium',
     xmFast: 'Fast',

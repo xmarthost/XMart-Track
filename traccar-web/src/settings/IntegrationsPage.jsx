@@ -304,7 +304,7 @@ const IntegrationsPage = () => {
               <InputLabel>{t('xmDefaultMap')}</InputLabel>
               <Select
                 label={t('xmDefaultMap')}
-                value={item.map || 'openFreeMap'}
+                value={item.map || 'googleRoad'}
                 onChange={(e) => setItem({ ...item, map: e.target.value })}
               >
                 {mapStyles.filter(isUsable).map((style) => (

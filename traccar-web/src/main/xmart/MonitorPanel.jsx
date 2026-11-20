@@ -20,6 +20,9 @@ import {
   Typography,
 } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import SearchIcon from '@mui/icons-material/Search';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutlined';
@@ -159,6 +162,84 @@ const useStyles = makeStyles()((theme) => ({
     alignItems: 'center',
     gap: 2,
   },
+  mobileRoot: {
+    backgroundColor: theme.palette.background.default,
+  },
+  mobileSearch: {
+    borderRadius: 24,
+    backgroundColor: theme.palette.background.paper,
+    boxShadow: '0 2px 10px rgba(15, 23, 42, 0.06)',
+    '& fieldset': { border: 'none' },
+  },
+  mobileTabs: {
+    minHeight: 36,
+    border: 'none',
+    padding: theme.spacing(0.5, 1.5),
+    '& .MuiTabs-indicator': { display: 'none' },
+    '& .MuiTab-root': {
+      minHeight: 34,
+      borderRadius: 18,
+      margin: theme.spacing(0, 0.25),
+      fontSize: '0.85rem',
+      textTransform: 'none',
+      fontWeight: 600,
+      color: theme.palette.text.secondary,
+    },
+    '& .Mui-selected': {
+      backgroundColor: theme.palette.primary.main,
+      color: `${theme.palette.primary.contrastText} !important`,
+      boxShadow: '0 4px 12px rgba(0, 112, 128, 0.3)',
+    },
+  },
+  mobileTools: {
+    borderBottom: 'none',
+  },
+  cardWrap: {
+    padding: theme.spacing(0.75, 1.5),
+    boxSizing: 'border-box',
+  },
+  card: {
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1.5),
+    padding: theme.spacing(0, 0.5, 0, 1.25),
+    borderRadius: 16,
+    backgroundColor: theme.palette.background.paper,
+    boxShadow: '0 3px 14px rgba(15, 23, 42, 0.07)',
+    cursor: 'pointer',
+    transition: 'transform 120ms ease, box-shadow 120ms ease',
+    '&:active': {
+      transform: 'scale(0.985)',
+    },
+  },
+  cardSelected: {
+    boxShadow: `0 0 0 2px ${theme.palette.primary.main}, 0 6px 18px rgba(0, 112, 128, 0.2)`,
+  },
+  carAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  statePill: {
+    padding: theme.spacing(0.25, 1),
+    borderRadius: 12,
+    '& .MuiTypography-root': {
+      fontSize: '0.75rem',
+    },
+  },
+  mobileGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: theme.spacing(0, 1.5),
+    color: theme.palette.text.secondary,
+    cursor: 'pointer',
+    userSelect: 'none',
+  },
   empty: {
     padding: theme.spacing(4),
     textAlign: 'center',
@@ -195,7 +276,7 @@ const DeviceStateText = ({ device, position }) => {
   );
 };
 
-const Row = ({ index, style, rows, onToggleGroup, onMenu }) => {
+const Row = ({ index, style, rows, onToggleGroup, onMenu, mobile }) => {
   const { classes, cx } = useStyles();
   const dispatch = useDispatch();
   const t = useTranslation();
@@ -204,6 +285,21 @@ const Row = ({ index, style, rows, onToggleGroup, onMenu }) => {
   const position = useSelector((state) =>
     row.type === 'device' ? state.session.positions[row.device.id] : null,
   );
+
+  if (row.type === 'group' && mobile) {
+    return (
+      <div style={style} className={classes.mobileGroup} onClick={() => onToggleGroup(row.key)}>
+        {row.collapsed ? (
+          <ArrowRightIcon fontSize="small" />
+        ) : (
+          <ArrowDropDownIcon fontSize="small" />
+        )}
+        <Typography variant="caption" fontWeight={700} sx={{ letterSpacing: '0.04em' }}>
+          {`${row.name.toUpperCase()} (${row.count})`}
+        </Typography>
+      </div>
+    );
+  }
 
   if (row.type === 'group') {
     return (
@@ -219,6 +315,49 @@ const Row = ({ index, style, rows, onToggleGroup, onMenu }) => {
   const { device } = row;
   const state = getDeviceState(device, position);
   const attributes = position?.attributes || {};
+
+  if (mobile) {
+    return (
+      <div style={style} className={classes.cardWrap}>
+        <div
+          className={cx(classes.card, selectedId === device.id && classes.cardSelected)}
+          onClick={() => dispatch(devicesActions.selectId(device.id))}
+        >
+          <span
+            className={classes.carAvatar}
+            style={{ backgroundColor: `${stateColors[state]}1F`, color: stateColors[state] }}
+          >
+            <DirectionsCarIcon />
+          </span>
+          <div className={classes.deviceText}>
+            <Typography className={classes.deviceName} sx={{ fontSize: '0.95rem' }}>
+              {device.name}
+            </Typography>
+            <Typography className={classes.deviceSub}>
+              {device.uniqueId}
+              {attributes.hasOwnProperty('ignition') &&
+                ` • ${t('xmAcc')} ${attributes.ignition ? t('xmAccOn') : t('xmAccOff')}`}
+            </Typography>
+          </div>
+          <span
+            className={classes.statePill}
+            style={{ backgroundColor: `${stateColors[state]}17` }}
+          >
+            <DeviceStateText device={device} position={position} />
+          </span>
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMenu(e.currentTarget, device.id);
+            }}
+          >
+            <MoreVertIcon fontSize="small" />
+          </IconButton>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -281,7 +420,9 @@ const MonitorPanel = ({
   filterMap,
   setFilterMap,
 }) => {
-  const { classes } = useStyles();
+  const { classes, cx } = useStyles();
+  const theme = useTheme();
+  const mobile = useMediaQuery(theme.breakpoints.down('md'));
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const t = useTranslation();
@@ -383,11 +524,12 @@ const MonitorPanel = ({
   };
 
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, mobile && classes.mobileRoot)}>
       <div className={classes.searchRow}>
         <OutlinedInput
           size="small"
           fullWidth
+          className={mobile ? classes.mobileSearch : undefined}
           placeholder={t('xmSearchPlaceholder')}
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
@@ -414,9 +556,10 @@ const MonitorPanel = ({
         </IconButton>
       </div>
       <Tabs
-        className={classes.tabs}
+        className={mobile ? classes.mobileTabs : classes.tabs}
         value={tab}
-        variant="fullWidth"
+        variant={mobile ? 'scrollable' : 'fullWidth'}
+        scrollButtons={false}
         onChange={(_, value) => setFilter({ ...filter, statuses: tabStatuses[value] })}
       >
         <Tab value="all" label={`${t('xmAll')}(${counts.all})`} />
@@ -424,7 +567,7 @@ const MonitorPanel = ({
         <Tab value="offline" label={`${t('xmOffline')}(${counts.offline})`} />
         <Tab value="inactive" label={`${t('xmInactive')}(${counts.inactive})`} />
       </Tabs>
-      <div className={classes.toolsRow}>
+      <div className={cx(classes.toolsRow, mobile && classes.mobileTools)}>
         <FormControlLabel
           control={
             <Checkbox
@@ -444,9 +587,13 @@ const MonitorPanel = ({
           <List
             rowComponent={Row}
             rowCount={rows.length}
-            rowHeight={(index) => (rows[index].type === 'group' ? HEADER_ROW : DEVICE_ROW)}
+            rowHeight={(index) => {
+              if (rows[index].type === 'group') return mobile ? 34 : HEADER_ROW;
+              return mobile ? 84 : DEVICE_ROW;
+            }}
             rowProps={{
               rows,
+              mobile,
               onToggleGroup: toggleGroup,
               onMenu: (anchorEl, deviceId) => setMenu({ anchorEl, deviceId }),
             }}

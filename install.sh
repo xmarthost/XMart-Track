@@ -172,6 +172,10 @@ set_config geocoder.format '%f'
 set_config geocoder.cacheSize '20000'
 set_config processing.copyAttributes.enable 'true'
 set_config processing.copyAttributes 'power,battery,batteryLevel,ignition,sat,rssi,charge,blocked,odometer'
+# old installs used OpenFreeMap as the default map; switch them to Google Road
+if [ "$FIRST_INSTALL" -eq 0 ]; then
+  mysql -u root xmarttrack -e "UPDATE tc_servers SET map='googleRoad' WHERE map IS NULL OR map='openFreeMap';" 2>/dev/null || true
+fi
 
 # ---------------------------------------------------------------- service
 log "Configuring service"
@@ -289,7 +293,7 @@ if [ "$FIRST_INSTALL" -eq 1 ] || [ ! -f "$CRED_FILE" ]; then
 import json, sys
 s = json.load(sys.stdin)
 s['registration'] = False
-s['map'] = 'openFreeMap'
+s['map'] = 'googleRoad'
 a = s.setdefault('attributes', {})
 a.update({'timezone': '$TIMEZONE', 'speedUnit': 'kmh', 'distanceUnit': 'km',
           'xm.deviceHost': '$HOST', 'title': 'XMart Track'})

@@ -51,7 +51,7 @@ export const paidMapIds = new Set([
 ]);
 
 export const defaultActiveMapStyles =
-  'openFreeMap,esriSatellite,cartoLight,osm,googleRoad,googleHybrid';
+  'googleRoad,googleHybrid,googleSatellite,openFreeMap,esriSatellite,osm';
 
 export default () => {
   const t = useTranslation();

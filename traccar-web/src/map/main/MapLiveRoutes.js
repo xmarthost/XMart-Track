@@ -9,14 +9,14 @@ const MapLiveRoutes = ({ deviceIds }) => {
   const theme = useTheme();
   const t = useTranslation();
 
-  const type = useAttributePreference('mapLiveRoutes', 'none');
+  const type = useAttributePreference('mapLiveRoutes', 'all');
 
   const devices = useSelector((state) => state.devices.items);
   const selectedDeviceId = useSelector((state) => state.devices.selectedId);
 
   const history = useSelector((state) => state.session.history);
 
-  const mapLineWidth = useAttributePreference('mapLineWidth', 2);
+  const mapLineWidth = Math.max(useAttributePreference('mapLineWidth', 2), 4);
   const mapLineOpacity = useAttributePreference('mapLineOpacity', 1);
 
   const visibleIds = deviceIds
@@ -53,7 +53,7 @@ const MapLiveRoutes = ({ deviceIds }) => {
           ),
         },
         properties: {
-          color: devices[deviceId]?.attributes?.['web.reportColor'] || theme.palette.geometry.main,
+          color: devices[deviceId]?.attributes?.['web.reportColor'] || '#16A34A',
           width: mapLineWidth,
           opacity: mapLineOpacity,
         },

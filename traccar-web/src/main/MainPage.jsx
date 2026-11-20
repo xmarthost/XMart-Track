@@ -11,6 +11,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import MonitorPanel from './xmart/MonitorPanel';
 import MobileMonitor from '../mobile/MobileMonitor';
 import MapSideControls from '../map/control/MapSideControls';
+import LiveRefresh from '../map/control/LiveRefresh';
 import StatusCard from '../common/components/StatusCard';
 import { devicesActions } from '../store';
 import usePersistedState from '../common/util/usePersistedState';
@@ -101,6 +102,8 @@ const MainPage = () => {
 
   const selectedDeviceId = useSelector((state) => state.devices.selectedId);
   const devicesLoaded = useSelector((state) => state.devices.loaded);
+  const selectTime = useSelector((state) => state.devices.selectTime);
+  const lastSelectTimeRef = useRef(selectTime);
   const [searchParams, setSearchParams] = useSearchParams();
   const urlDeviceId = Number(searchParams.get('device')) || null;
 
@@ -123,26 +126,43 @@ const MainPage = () => {
       }
       return;
     }
-    setSearchParams(
-      (previous) => {
-        const current = Number(previous.get('device')) || null;
-        if (current === (selectedDeviceId || null)) {
-          return previous;
-        }
-        const next = new URLSearchParams(previous);
-        if (selectedDeviceId) {
-          next.set('device', selectedDeviceId);
-          if (!desktop) {
-            next.set('view', 'map');
+    // every tap on a vehicle (even the one already selected) opens the map on phones
+    const tapped = selectTime !== lastSelectTimeRef.current;
+    lastSelectTimeRef.current = selectTime;
+    // On phones the map replaces the list after the tap has finished, otherwise the same
+    // touch lands on the map and can hit another vehicle's marker.
+    const apply = () =>
+      setSearchParams(
+        (previous) => {
+          const current = Number(previous.get('device')) || null;
+          if (current === (selectedDeviceId || null)) {
+            if (tapped && selectedDeviceId && !desktop && previous.get('view') !== 'map') {
+              const next = new URLSearchParams(previous);
+              next.set('view', 'map');
+              return next;
+            }
+            return previous;
           }
-        } else {
-          next.delete('device');
-        }
-        return next;
-      },
-      { replace: true },
-    );
-  }, [selectedDeviceId, devicesLoaded, setSearchParams, desktop]);
+          const next = new URLSearchParams(previous);
+          if (selectedDeviceId) {
+            next.set('device', selectedDeviceId);
+            if (!desktop) {
+              next.set('view', 'map');
+            }
+          } else {
+            next.delete('device');
+          }
+          return next;
+        },
+        { replace: true },
+      );
+    if (desktop) {
+      apply();
+      return undefined;
+    }
+    const timer = setTimeout(apply, 120);
+    return () => clearTimeout(timer);
+  }, [selectedDeviceId, selectTime, devicesLoaded, setSearchParams, desktop]);
   const positions = useSelector((state) => state.session.positions);
   const [filteredPositions, setFilteredPositions] = useState([]);
   const selectedPosition = filteredPositions.find(
@@ -215,6 +235,19 @@ const MainPage = () => {
             onEventsClick={onEventsClick}
           />
         </Suspense>
+      )}
+      {desktop && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            height: 0,
+            left: devicesOpen ? theme.dimensions.drawerWidthDesktop : 0,
+          }}
+        >
+          <LiveRefresh />
+        </div>
       )}
       {desktop && (
         <MapSideControls

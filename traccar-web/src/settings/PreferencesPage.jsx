@@ -228,7 +228,7 @@ const PreferencesPage = () => {
                   <InputLabel>{t('mapLiveRoutes')}</InputLabel>
                   <Select
                     label={t('mapLiveRoutes')}
-                    value={attributes.mapLiveRoutes || 'none'}
+                    value={attributes.mapLiveRoutes || 'all'}
                     onChange={(e) =>
                       setAttributes({ ...attributes, mapLiveRoutes: e.target.value })
                     }
@@ -255,7 +255,7 @@ const PreferencesPage = () => {
                     control={
                       <Checkbox
                         checked={
-                          attributes.hasOwnProperty('mapFollow') ? attributes.mapFollow : false
+                          attributes.hasOwnProperty('mapFollow') ? attributes.mapFollow : true
                         }
                         onChange={(e) =>
                           setAttributes({ ...attributes, mapFollow: e.target.checked })

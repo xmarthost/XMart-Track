@@ -1,7 +1,7 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 import * as maplibregl from 'maplibre-gl';
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
-import { googleProtocol } from 'maplibre-google-maps';
+import { googleProtocol } from './googleProtocol';
 import { Protocol } from 'pmtiles';
 import { useRef, useLayoutEffect, useEffect, useState, useMemo } from 'react';
 import { useTheme } from '@mui/material';
@@ -77,10 +77,16 @@ const MapView = ({ children }) => {
 
   const mapStyles = useMapStyles();
   const activeMapStyles = useAttributePreference('activeMapStyles', defaultActiveMapStyles);
-  const [selectedStyleId, setSelectedStyleId] = usePersistedState(
-    'selectedMapStyle',
-    usePreference('map', 'openFreeMap'),
-  );
+  const defaultMap = usePreference('map', 'googleRoad');
+  const [selectedStyleId, setSelectedStyleId] = usePersistedState('selectedMapStyle', defaultMap);
+  // XMart: when the admin (or user) changes the default map, apply it on every device once
+  const [seenDefaultMap, setSeenDefaultMap] = usePersistedState('xmSeenDefaultMap', null);
+  useEffect(() => {
+    if (defaultMap && defaultMap !== seenDefaultMap) {
+      setSelectedStyleId(defaultMap);
+      setSeenDefaultMap(defaultMap);
+    }
+  }, [defaultMap, seenDefaultMap, setSelectedStyleId, setSeenDefaultMap]);
   const maxZoom = useAttributePreference('web.maxZoom');
 
   const styles = useMemo(() => {

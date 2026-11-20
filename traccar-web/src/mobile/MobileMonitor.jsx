@@ -8,6 +8,7 @@ import { useSearchParams } from 'react-router-dom';
 import MonitorPanel from '../main/xmart/MonitorPanel';
 import MobileDeviceSheet from './MobileDeviceSheet';
 import MapSideControls from '../map/control/MapSideControls';
+import LiveRefresh from '../map/control/LiveRefresh';
 import xmartIcon from '../resources/images/xmart-icon.png';
 
 const MainMap = lazy(() => import('../main/MainMap'));
@@ -20,6 +21,9 @@ const useStyles = makeStyles()((theme) => ({
   },
   header: {
     zIndex: 7,
+    backgroundColor: 'rgba(255, 255, 255, 0.86)',
+    backdropFilter: 'blur(12px)',
+    boxShadow: '0 4px 20px rgba(15, 23, 42, 0.06)',
   },
   titleRow: {
     display: 'flex',
@@ -112,6 +116,7 @@ const MobileMonitor = ({ panelProps, filteredPositions, selectedPosition, onEven
             />
           </Suspense>
           <MapSideControls positions={filteredPositions} />
+          <LiveRefresh />
           {selectedId && (
             <MobileDeviceSheet
               deviceId={selectedId}
@@ -120,7 +125,7 @@ const MobileMonitor = ({ panelProps, filteredPositions, selectedPosition, onEven
           )}
         </div>
         {view === 'list' && (
-          <div className={classes.layer}>
+          <div className={classes.layer} style={{ zIndex: 10 }}>
             <MonitorPanel {...panelProps} />
           </div>
         )}
