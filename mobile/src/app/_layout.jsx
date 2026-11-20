@@ -1,0 +1,95 @@
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
+import { Stack, router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
+import { AppProvider, useApp } from '../state/AppState';
+import { restoreSession } from '../api/server';
+import { colors } from '../state/status';
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+function Welcome() {
+  return (
+    <View style={styles.welcome}>
+      <View style={styles.logoTile}>
+        <Image source={require('../../assets/icon.png')} style={styles.logo} />
+      </View>
+      <Text style={styles.title}>
+        XMart <Text style={styles.titleAccent}>Track</Text>
+      </Text>
+      <Text style={styles.tagline}>GPS TRACKING PLATFORM</Text>
+      <ActivityIndicator color="#FFFFFF" style={{ marginTop: 36 }} />
+    </View>
+  );
+}
+
+function Gate() {
+  const { setUser } = useApp();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const user = await restoreSession();
+      if (user) setUser(user);
+      setReady(true);
+      SplashScreen.hideAsync().catch(() => {});
+      router.replace(user ? '/(tabs)' : '/login');
+    })();
+  }, [setUser]);
+
+  return (
+    <>
+      <StatusBar style="light" backgroundColor={colors.tealDark} />
+      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="device/[id]/commands" options={headerOptions('Commands')} />
+        <Stack.Screen name="device/[id]/playback" options={headerOptions('Playback')} />
+      </Stack>
+      {!ready && (
+        <View style={StyleSheet.absoluteFill}>
+          <Welcome />
+        </View>
+      )}
+    </>
+  );
+}
+
+const headerOptions = (title) => ({
+  headerShown: true,
+  title,
+  headerTitleAlign: 'center',
+  headerTintColor: colors.text,
+});
+
+export default function RootLayout() {
+  return (
+    <AppProvider>
+      <Gate />
+    </AppProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  welcome: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.tealDark,
+  },
+  logoTile: {
+    width: 120,
+    height: 120,
+    borderRadius: 30,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 8,
+  },
+  logo: { width: 96, height: 96 },
+  title: { marginTop: 22, fontSize: 30, fontWeight: '800', color: '#FFFFFF' },
+  titleAccent: { color: '#7DD3DC' },
+  tagline: { marginTop: 6, fontSize: 12, letterSpacing: 2, color: 'rgba(255,255,255,0.8)' },
+});

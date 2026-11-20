@@ -1,0 +1,45 @@
+// XMart Track mobile app configuration.
+// GOOGLE_MAPS_API_KEY: Android key with "Maps SDK for Android" enabled (set as a GitHub secret).
+// XMART_SERVER: server address used by default on the login screen.
+module.exports = {
+  expo: {
+    name: 'XMart Track',
+    slug: 'xmart-track',
+    scheme: 'xmarttrack',
+    version: '1.0.0',
+    orientation: 'portrait',
+    icon: './assets/icon.png',
+    userInterfaceStyle: 'light',
+    backgroundColor: '#F4F8FD',
+    android: {
+      package: 'site.xmarttrack.app',
+      versionCode: Number(process.env.APP_VERSION_CODE || 1),
+      adaptiveIcon: {
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#FFFFFF',
+      },
+      permissions: ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'POST_NOTIFICATIONS'],
+    },
+    plugins: [
+      'expo-router',
+      'expo-secure-store',
+      [
+        'expo-splash-screen',
+        {
+          backgroundColor: '#0A4A55',
+          image: './assets/splash-icon.png',
+          imageWidth: 180,
+        },
+      ],
+      [
+        'react-native-maps',
+        {
+          androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
+        },
+      ],
+    ],
+    extra: {
+      server: process.env.XMART_SERVER || 'https://xmarttrack.site',
+    },
+  },
+};
