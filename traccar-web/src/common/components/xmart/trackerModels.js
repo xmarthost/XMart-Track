@@ -10,8 +10,13 @@ export const trackerModels = [
     port: 5023,
     serverCommand: 'SERVER,1,{host},{port},0#',
     apnCommand: 'APN,{apn}#',
-    checkCommand: 'PARAM#',
+    checkCommand: 'status#',
     resetCommand: 'RESET#',
+    // From the G19S user manual (section 4, SMS Command)
+    sosCommand: 'sos,a,{numbers}#',
+    centerCommand: 'center,a,{number}#',
+    locationCommand: 'DW',
+    statusCommand: 'status#',
   },
   {
     id: 'concox-gt06',

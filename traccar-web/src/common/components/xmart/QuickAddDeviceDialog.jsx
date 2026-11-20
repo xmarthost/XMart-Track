@@ -70,7 +70,7 @@ const useStyles = makeStyles()((theme) => ({
   },
 }));
 
-const CommandBox = ({ label, command, phone }) => {
+export const CommandBox = ({ label, command, phone }) => {
   const { classes } = useStyles();
   const t = useTranslation();
   const [copied, setCopied] = useState(false);

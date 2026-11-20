@@ -46,6 +46,8 @@ import { speedFromKnots, speedUnitString } from '../../common/util/converter';
 import { getDeviceState, sinceNow, stateColors } from '../../common/util/xmartStatus';
 import EngineControlDialog from '../../common/components/xmart/EngineControlDialog';
 import QuickAddDeviceDialog from '../../common/components/xmart/QuickAddDeviceDialog';
+import TrackerSmsDialog from '../../common/components/xmart/TrackerSmsDialog';
+import SmsIcon from '@mui/icons-material/Sms';
 
 const HEADER_ROW = 40;
 const DEVICE_ROW = 52;
@@ -298,6 +300,7 @@ const MonitorPanel = ({
   const [optionsAnchor, setOptionsAnchor] = useState(null);
   const [engine, setEngine] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [trackerSmsId, setTrackerSmsId] = useState(null);
 
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
   useEffect(() => {
@@ -542,6 +545,14 @@ const MonitorPanel = ({
             <ListItemText>{t('xmViewReport')}</ListItemText>
           </MenuItem>
         )}
+        {!readonly && !limitCommands && (
+          <MenuItem onClick={menuAction((id) => setTrackerSmsId(id))}>
+            <ListItemIcon>
+              <SmsIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>{t('xmTrackerSms')}</ListItemText>
+          </MenuItem>
+        )}
         {!readonly && !limitCommands && <Divider />}
         {!readonly && !limitCommands && (
           <MenuItem onClick={menuAction((id) => setEngine({ deviceId: id, action: 'engineStop' }))}>
@@ -566,6 +577,7 @@ const MonitorPanel = ({
       </Menu>
       <Box>
         <QuickAddDeviceDialog open={addOpen} onClose={() => setAddOpen(false)} />
+        <TrackerSmsDialog deviceId={trackerSmsId} onClose={() => setTrackerSmsId(null)} />
         <EngineControlDialog
           deviceId={engine?.deviceId}
           action={engine?.action}

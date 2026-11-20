@@ -3,6 +3,19 @@
 export default {
   en: {
     xmAddDevice: 'Add device',
+    xmTrackerSms: 'Tracker SMS alerts',
+    xmTrackerSmsHelp:
+      'The tracker sends alarm SMS (ACC on/off, SOS, power cut) from its own SIM card to these numbers, free with the SIM package and without the server. Send the commands to the tracker SIM by SMS, or over the internet when the tracker is online.',
+    xmTrackerSimMissing:
+      'Add the tracker SIM number in device settings to open the SMS app with one tap.',
+    xmCenterNumber: 'Center number',
+    xmCenterNumberHelp: 'Main number that controls the tracker and receives its alarm SMS.',
+    xmSosNumbers: 'SOS numbers',
+    xmSosHelp:
+      'The manual shows one SOS number per command. Several numbers are sent comma separated; check the tracker reply.',
+    xmCmdLocation: 'Get location by SMS',
+    xmSendOnline: 'Send over internet (GPRS)',
+    xmSendOnlineOffline: 'Tracker is offline; send by SMS instead',
     xmStepImei: 'Enter IMEI',
     xmStepConfigure: 'Configure tracker',
     xmImeiHelp: 'Printed on the tracker label or box (15 digits).',
