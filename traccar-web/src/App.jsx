@@ -2,7 +2,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useMediaQuery, useTheme } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
-import BottomMenu from './common/components/BottomMenu';
+import MobileBottomNav from './mobile/MobileBottomNav';
 import SocketController from './SocketController';
 import CachingController from './CachingController';
 import { useCatch, useAsyncTask } from './reactHelper';
@@ -117,7 +117,7 @@ const App = () => {
       )}
       {!desktop && !features.disableTabs && (
         <div className={classes.menu}>
-          <BottomMenu />
+          <MobileBottomNav />
         </div>
       )}
     </>

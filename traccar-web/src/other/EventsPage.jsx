@@ -1,6 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
+import KeyIcon from '@mui/icons-material/VpnKey';
+import KeyOffIcon from '@mui/icons-material/KeyOff';
+import WarningIcon from '@mui/icons-material/Warning';
+import SpeedIcon from '@mui/icons-material/Speed';
+import HexagonIcon from '@mui/icons-material/HexagonOutlined';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import dayjs from 'dayjs';
 import {
   Box,
@@ -79,7 +88,10 @@ const EventsPage = () => {
   const devices = useSelector((state) => state.devices.items);
 
   const [range, setRange] = useState('today');
-  const [deviceId, setDeviceId] = useState('');
+  const [searchParams] = useSearchParams();
+  const theme = useTheme();
+  const desktop = useMediaQuery(theme.breakpoints.up('md'));
+  const [deviceId, setDeviceId] = useState(searchParams.get('deviceId') || '');
   const [type, setType] = useState('');
   const [items, setItems] = useState(null);
   const [version, setVersion] = useState(0);
@@ -121,6 +133,139 @@ const EventsPage = () => {
   const visible = (items || []).filter((item) => !type || item.type === type);
 
   const typeLabel = (value) => t(prefixString('event', value)) || value;
+
+  if (!desktop) {
+    const iconFor = (value) => {
+      if (value === 'ignitionOn') return [<KeyIcon key="i" />, '#16A34A'];
+      if (value === 'ignitionOff') return [<KeyOffIcon key="i" />, '#94A3B8'];
+      if (value === 'alarm') return [<WarningIcon key="i" />, '#DC2626'];
+      if (value === 'deviceOverspeed') return [<SpeedIcon key="i" />, '#F59E0B'];
+      if (value.startsWith('geofence')) return [<HexagonIcon key="i" />, '#2563EB'];
+      return [<NotificationsIcon key="i" />, '#007080'];
+    };
+    return (
+      <Box
+        sx={{
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          bgcolor: 'background.default',
+        }}
+      >
+        <Paper square elevation={1} sx={{ pt: 'env(safe-area-inset-top)' }}>
+          <Typography variant="h6" align="center" sx={{ py: 1.25, fontWeight: 700 }}>
+            {t('xmAlerts')}
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, px: 1.5, pb: 1, overflowX: 'auto' }}>
+            {Object.keys(ranges).map((key) => (
+              <Chip
+                key={key}
+                label={
+                  {
+                    today: t('reportToday'),
+                    yesterday: t('reportYesterday'),
+                    week: t('xmLast7Days'),
+                  }[key]
+                }
+                color={range === key ? 'primary' : 'default'}
+                onClick={() => setRange(key)}
+              />
+            ))}
+            {deviceId && (
+              <Chip
+                label={devices[deviceId]?.name}
+                onDelete={() => setDeviceId('')}
+                color="secondary"
+                variant="outlined"
+              />
+            )}
+          </Box>
+        </Paper>
+        <Box
+          sx={{
+            flex: 1,
+            overflowY: 'auto',
+            p: 1.5,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.5,
+          }}
+        >
+          {items === null && (
+            <Typography align="center" color="textSecondary">
+              …
+            </Typography>
+          )}
+          {items !== null && !visible.length && (
+            <Typography align="center" color="textSecondary" sx={{ mt: 4 }}>
+              {t('sharedNoData') || '—'}
+            </Typography>
+          )}
+          {visible.map((item) => {
+            const [icon, color] = iconFor(item.type);
+            return (
+              <Paper key={item.id} elevation={0} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                <Box sx={{ display: 'flex', gap: 2, p: 2, alignItems: 'center' }}>
+                  <Box
+                    sx={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: '50%',
+                      bgcolor: color,
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {icon}
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                      <Typography fontWeight={600} noWrap>
+                        {item.type === 'alarm'
+                          ? formatAlarm(item.attributes?.alarm, t)
+                          : typeLabel(item.type)}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="textSecondary"
+                        sx={{ whiteSpace: 'nowrap' }}
+                      >
+                        {dayjs(item.eventTime).format('YYYY-MM-DD HH:mm')}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="textSecondary" noWrap>
+                      {`${t('sharedDevice')}: ${devices[item.deviceId]?.name || ''}`}
+                    </Typography>
+                  </Box>
+                </Box>
+                {item.positionId ? (
+                  <Box
+                    onClick={() => navigate(`/event/${item.id}`)}
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      px: 2,
+                      py: 1.25,
+                      borderTop: 1,
+                      borderColor: 'divider',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Typography variant="body2">{t('xmViewDetails')}</Typography>
+                    <ChevronRightIcon color="action" />
+                  </Box>
+                ) : null}
+              </Paper>
+            );
+          })}
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <PageLayout menu={<ReportsMenu />} breadcrumbs={['reportTitle', 'xmEvents']}>

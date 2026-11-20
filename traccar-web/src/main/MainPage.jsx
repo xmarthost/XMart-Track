@@ -8,6 +8,7 @@ import DeviceList from './DeviceList';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import MonitorPanel from './xmart/MonitorPanel';
+import MobileMonitor from '../mobile/MobileMonitor';
 import StatusCard from '../common/components/StatusCard';
 import { devicesActions } from '../store';
 import usePersistedState from '../common/util/usePersistedState';
@@ -134,6 +135,30 @@ const MainPage = () => {
     setFilteredDevices,
     setFilteredPositions,
   );
+
+  if (!desktop) {
+    return (
+      <>
+        <MobileMonitor
+          panelProps={{
+            devices: filteredDevices,
+            keyword,
+            setKeyword,
+            filter,
+            setFilter,
+            filterSort,
+            setFilterSort,
+            filterMap,
+            setFilterMap,
+          }}
+          filteredPositions={filteredPositions}
+          selectedPosition={selectedPosition}
+          onEventsClick={onEventsClick}
+        />
+        <EventsDrawer open={eventsOpen} onClose={() => setEventsOpen(false)} />
+      </>
+    );
+  }
 
   return (
     <div className={classes.root}>
