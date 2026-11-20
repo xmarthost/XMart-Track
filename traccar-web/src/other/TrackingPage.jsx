@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import dayjs from 'dayjs';
-import { Chip, IconButton, Paper, Switch, Toolbar, Tooltip, Typography } from '@mui/material';
+import { Chip, Fab, IconButton, Paper, Switch, Toolbar, Tooltip, Typography } from '@mui/material';
+import NavigationIcon from '@mui/icons-material/Navigation';
+import AddressValue from '../common/components/AddressValue';
 import { makeStyles } from 'tss-react/mui';
 import HistoryIcon from '@mui/icons-material/History';
 import MapView, { map } from '../map/core/MapView';
@@ -19,7 +21,7 @@ import { toMapCoordinates } from '../map/core/mapUtil';
 import { formatTime } from '../common/util/formatter';
 import { useAttributePreference } from '../common/util/preferences';
 import { speedFromKnots, speedUnitString } from '../common/util/converter';
-import { getDeviceState, stateColors } from '../common/util/xmartStatus';
+import { getDeviceState, sinceNow, stateColors } from '../common/util/xmartStatus';
 
 const TRAIL_HOURS = 1;
 const TRAIL_LIMIT = 2000;
@@ -43,6 +45,22 @@ const useStyles = makeStyles()((theme) => ({
   title: {
     flex: 1,
     fontWeight: 700,
+  },
+  bottom: {
+    position: 'absolute',
+    left: theme.spacing(1.5),
+    right: theme.spacing(1.5),
+    bottom: theme.spacing(1.5),
+    zIndex: 3,
+    borderRadius: 14,
+    padding: theme.spacing(2),
+    maxWidth: 520,
+    margin: '0 auto',
+  },
+  navigate: {
+    position: 'absolute',
+    right: theme.spacing(2),
+    top: theme.spacing(-3.5),
   },
   stats: {
     display: 'grid',
@@ -145,6 +163,35 @@ const TrackingPage = () => {
           </Typography>
         </div>
       </Paper>
+      {position && (
+        <Paper elevation={6} className={classes.bottom}>
+          <Fab
+            color="primary"
+            className={classes.navigate}
+            component="a"
+            target="_blank"
+            href={`https://www.google.com/maps/dir/?api=1&destination=${position.latitude},${position.longitude}`}
+          >
+            <NavigationIcon />
+          </Fab>
+          <Typography variant="h6" fontWeight={700} sx={{ color: stateColors[state] }}>
+            {state === 'moving'
+              ? `${t('xmMoving')} ${Math.round(speedFromKnots(position.speed, speedUnit))} ${speedUnitString(speedUnit, t)}`
+              : `${t(`xm${state.charAt(0).toUpperCase()}${state.slice(1)}`)} ${sinceNow(position.fixTime)}`}
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 0.5, pr: 7 }}>
+            <AddressValue
+              latitude={position.latitude}
+              longitude={position.longitude}
+              originalAddress={position.address}
+              auto
+            />
+          </Typography>
+          <Typography variant="caption" color="textSecondary" component="div" sx={{ mt: 0.5 }}>
+            {`${t('xmFixTime')}: ${formatTime(position.fixTime)}`}
+          </Typography>
+        </Paper>
+      )}
     </div>
   );
 };

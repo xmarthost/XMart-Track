@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import { map } from './core/MapView';
-import { toMapCoordinates } from './core/mapUtil';
+import { toMapCoordinates, xmZoom } from './core/mapUtil';
 
 const MapCamera = ({ latitude, longitude, positions, coordinates }) => {
   useEffect(() => {
@@ -24,7 +24,7 @@ const MapCamera = ({ latitude, longitude, positions, coordinates }) => {
     } else {
       map.jumpTo({
         center: toMapCoordinates(longitude, latitude),
-        zoom: Math.max(map.getZoom(), 16),
+        zoom: Math.max(map.getZoom(), xmZoom()),
       });
     }
   }, [latitude, longitude, positions, coordinates]);

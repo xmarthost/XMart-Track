@@ -4,7 +4,7 @@ import getSpeedColor from '../common/util/colors';
 import { useAttributePreference } from '../common/util/preferences';
 import { toMapCoordinates } from './core/mapUtil';
 
-const MapRoutePath = ({ positions }) => {
+const MapRoutePath = ({ positions, color }) => {
   const reportColor = useSelector((state) => {
     const position = positions?.find(() => true);
     if (position) {
@@ -36,7 +36,7 @@ const MapRoutePath = ({ positions }) => {
         ],
       },
       properties: {
-        color: reportColor || getSpeedColor(positions[i + 1].speed, minSpeed, maxSpeed),
+        color: color || reportColor || getSpeedColor(positions[i + 1].speed, minSpeed, maxSpeed),
         width: mapLineWidth,
         opacity: mapLineOpacity,
       },

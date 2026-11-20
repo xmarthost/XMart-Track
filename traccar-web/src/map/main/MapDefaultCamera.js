@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { usePreference } from '../../common/util/preferences';
 import { map } from '../core/MapView';
-import { toMapCoordinates } from '../core/mapUtil';
+import { toMapCoordinates, xmZoom } from '../core/mapUtil';
 
 const MapDefaultCamera = ({ filteredPositions }) => {
   const selectedDeviceId = useSelector((state) => state.devices.selectedId);
@@ -22,7 +22,7 @@ const MapDefaultCamera = ({ filteredPositions }) => {
       if (position) {
         map.jumpTo({
           center: toMapCoordinates(position.longitude, position.latitude),
-          zoom: defaultZoom > 0 ? defaultZoom : 16,
+          zoom: defaultZoom > 0 ? defaultZoom : xmZoom(),
         });
         setInitialized(true);
       }
@@ -45,7 +45,7 @@ const MapDefaultCamera = ({ filteredPositions }) => {
           const canvas = map.getCanvas();
           map.fitBounds(bounds, {
             duration: 0,
-            maxZoom: 16,
+            maxZoom: xmZoom(),
             padding: Math.min(canvas.width, canvas.height) * 0.1,
           });
           setInitialized(true);
@@ -53,7 +53,7 @@ const MapDefaultCamera = ({ filteredPositions }) => {
           const [individual] = coordinates;
           map.jumpTo({
             center: individual,
-            zoom: defaultZoom > 0 ? defaultZoom : 16,
+            zoom: defaultZoom > 0 ? defaultZoom : xmZoom(),
           });
           setInitialized(true);
         }

@@ -10,6 +10,7 @@ import { usePreference } from '../util/preferences';
 // does not repeat requests to the geocoding service.
 const cache = new Map();
 const pending = new Map();
+let queue = Promise.resolve();
 
 const cacheKey = (latitude, longitude) => `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
 
@@ -20,9 +21,13 @@ const lookup = (latitude, longitude) => {
   }
   if (!pending.has(key)) {
     const query = new URLSearchParams({ latitude, longitude });
+    // one request at a time, ~1 per second (OpenStreetMap Nominatim usage policy)
+    const slot = queue;
+    queue = queue.then(() => new Promise((resolve) => setTimeout(resolve, 1100)));
     pending.set(
       key,
-      fetch(`api/server/geocode?${query.toString()}`)
+      slot
+        .then(() => fetch(`api/server/geocode?${query.toString()}`))
         .then((response) => (response.ok ? response.text() : null))
         .then((text) => {
           if (text) {

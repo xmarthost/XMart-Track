@@ -41,6 +41,7 @@ import { useAsyncTask } from '../reactHelper';
 import fetchOrThrow from '../common/util/fetchOrThrow';
 import { formatAlarm, formatTime } from '../common/util/formatter';
 import { prefixString } from '../common/util/stringUtils';
+import AddressValue from '../common/components/AddressValue';
 import TableShimmer from '../common/components/TableShimmer';
 
 const ranges = {
@@ -94,6 +95,7 @@ const EventsPage = () => {
   const [deviceId, setDeviceId] = useState(searchParams.get('deviceId') || '');
   const [type, setType] = useState('');
   const [items, setItems] = useState(null);
+  const [positionsById, setPositionsById] = useState({});
   const [version, setVersion] = useState(0);
 
   const deviceKey = Object.keys(devices).join();
@@ -116,6 +118,26 @@ const EventsPage = () => {
       const result = await response.json();
       result.sort((a, b) => dayjs(b.eventTime).valueOf() - dayjs(a.eventTime).valueOf());
       setItems(result);
+      const positionIds = [
+        ...new Set(
+          result
+            .slice(0, 40)
+            .map((e) => e.positionId)
+            .filter(Boolean),
+        ),
+      ];
+      if (positionIds.length) {
+        const positionsQuery = new URLSearchParams();
+        positionIds.forEach((positionId) => positionsQuery.append('id', positionId));
+        const positionsResponse = await fetchOrThrow(`api/positions?${positionsQuery.toString()}`, {
+          signal,
+        });
+        const map = {};
+        (await positionsResponse.json()).forEach((position) => {
+          map[position.id] = position;
+        });
+        setPositionsById(map);
+      }
     },
     // version is a manual refresh trigger
     // eslint-disable-next-line @eslint-react/exhaustive-deps
@@ -204,7 +226,11 @@ const EventsPage = () => {
           {visible.map((item) => {
             const [icon, color] = iconFor(item.type);
             return (
-              <Paper key={item.id} elevation={0} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+              <Paper
+                key={item.id}
+                elevation={0}
+                sx={{ borderRadius: 3, overflow: 'hidden', flexShrink: 0 }}
+              >
                 <Box sx={{ display: 'flex', gap: 2, p: 2, alignItems: 'center' }}>
                   <Box
                     sx={{
@@ -239,6 +265,16 @@ const EventsPage = () => {
                     <Typography variant="body2" color="textSecondary" noWrap>
                       {`${t('sharedDevice')}: ${devices[item.deviceId]?.name || ''}`}
                     </Typography>
+                    {positionsById[item.positionId] && (
+                      <Typography variant="caption" color="textSecondary" component="div">
+                        <AddressValue
+                          latitude={positionsById[item.positionId].latitude}
+                          longitude={positionsById[item.positionId].longitude}
+                          originalAddress={positionsById[item.positionId].address}
+                          auto
+                        />
+                      </Typography>
+                    )}
                   </Box>
                 </Box>
                 {item.positionId ? (

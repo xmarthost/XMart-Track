@@ -13,7 +13,7 @@ import { useAttributePreference } from '../../common/util/preferences';
 import { useTranslation } from '../../common/components/LocalizationProvider';
 import { defaultActiveMapStyles } from '../core/useMapStyles';
 import { map } from '../core/MapView';
-import { toMapCoordinates } from '../core/mapUtil';
+import { toMapCoordinates, xmZoom } from '../core/mapUtil';
 
 const satelliteIds = ['googleHybrid', 'esriSatellite', 'googleSatellite', 'mapTilerHybrid'];
 
@@ -72,7 +72,7 @@ const MapSideControls = ({ left = 12, positions }) => {
   const fitAll = () => {
     const coordinates = (positions || []).map((p) => toMapCoordinates(p.longitude, p.latitude));
     if (coordinates.length === 1) {
-      map.easeTo({ center: coordinates[0], zoom: 16 });
+      map.easeTo({ center: coordinates[0], zoom: xmZoom() });
     } else if (coordinates.length > 1) {
       const bounds = coordinates.reduce(
         (result, item) => result.extend(item),
@@ -86,7 +86,7 @@ const MapSideControls = ({ left = 12, positions }) => {
     if (selectedPosition) {
       map.easeTo({
         center: toMapCoordinates(selectedPosition.longitude, selectedPosition.latitude),
-        zoom: Math.max(map.getZoom(), 16),
+        zoom: Math.max(map.getZoom(), xmZoom()),
       });
     }
   };

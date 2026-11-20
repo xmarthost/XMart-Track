@@ -65,6 +65,7 @@ const EmulatorPage = lazy(() => import('./other/EmulatorPage'));
 const StreamPage = lazy(() => import('./other/StreamPage'));
 const AuditPage = lazy(() => import('./reports/AuditPage'));
 const TrackingPage = lazy(() => import('./other/TrackingPage'));
+const XmPlaybackPage = lazy(() => import('./other/XmPlaybackPage'));
 const MePage = lazy(() => import('./mobile/MePage'));
 const DeviceCommandsPage = lazy(() => import('./mobile/DeviceCommandsPage'));
 const DeviceMorePage = lazy(() => import('./mobile/DeviceMorePage'));
@@ -142,7 +143,8 @@ const Navigation = () => {
           <Route path="position/:id" element={<PositionPage />} />
           <Route path="network/:positionId" element={<NetworkPage />} />
           <Route path="event/:id" element={<EventPage />} />
-          <Route path="replay" element={<ReplayPage />} />
+          <Route path="replay" element={<XmPlaybackPage />} />
+          <Route path="replay-classic" element={<ReplayPage />} />
           <Route path="tracking/:id" element={<TrackingPage />} />
           <Route path="me" element={<MePage />} />
           <Route path="device-commands/:id" element={<DeviceCommandsPage />} />

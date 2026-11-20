@@ -166,7 +166,8 @@ export default () => {
             tiles: googleKey
               ? [`google://roadmap/{z}/{x}/{y}?key=${googleKey}`]
               : [0, 1, 2, 3].map(
-                  (i) => `https://mt${i}.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&s=Ga`,
+                  (i) =>
+                    `https://mt${i}.google.com/vt/lyrs=m&hl=en&gl=pk&scale=2&x={x}&y={y}&z={z}&s=Ga`,
                 ),
             maxZoom: 20,
             attribution: '© Google',
@@ -181,7 +182,8 @@ export default () => {
             tiles: googleKey
               ? [`google://satellite/{z}/{x}/{y}?key=${googleKey}`]
               : [0, 1, 2, 3].map(
-                  (i) => `https://mt${i}.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&s=Ga`,
+                  (i) =>
+                    `https://mt${i}.google.com/vt/lyrs=s&hl=en&gl=pk&scale=2&x={x}&y={y}&z={z}&s=Ga`,
                 ),
             maxZoom: 20,
             attribution: '© Google',
@@ -196,7 +198,8 @@ export default () => {
             tiles: googleKey
               ? [`google://satellite/{z}/{x}/{y}?key=${googleKey}&layerType=layerRoadmap`]
               : [0, 1, 2, 3].map(
-                  (i) => `https://mt${i}.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}&s=Ga`,
+                  (i) =>
+                    `https://mt${i}.google.com/vt/lyrs=y&hl=en&gl=pk&scale=2&x={x}&y={y}&z={z}&s=Ga`,
                 ),
             maxZoom: 20,
             attribution: '© Google',

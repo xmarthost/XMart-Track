@@ -151,3 +151,6 @@ export const findFonts = (map) => {
   }
   return ['Open Sans Regular', 'Arial Unicode MS Regular'];
 };
+
+// XMart: street-level zoom; slightly wider on phones
+export const xmZoom = () => (window.innerWidth < 900 ? 15.7 : 16);

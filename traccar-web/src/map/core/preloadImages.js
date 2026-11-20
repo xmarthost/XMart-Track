@@ -114,22 +114,36 @@ export const mapImages = {};
 
 // XMart: top-view car marker, rotated by course on the map
 export const carColors = {
-  moving: '#16A34A',
-  static: '#2563EB',
-  offline: '#DC2626',
-  inactive: '#94A3B8',
+  moving: ['#22C55E', '#15803D'],
+  static: ['#16A34A', '#166534'],
+  offline: ['#EF4444', '#991B1B'],
+  inactive: ['#94A3B8', '#475569'],
 };
 
-const xmCarSvg = (color) =>
-  `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'>
-<ellipse cx='24' cy='43' rx='10' ry='3' fill='rgba(0,0,0,0.22)'/>
-<rect x='13.5' y='4' width='21' height='39' rx='8.5' fill='${color}' stroke='#ffffff' stroke-width='2'/>
-<path d='M16.5 14.5 Q24 10.5 31.5 14.5 L30 20.5 Q24 18.5 18 20.5 Z' fill='#0f172a' opacity='0.85'/>
-<rect x='17.5' y='21.5' width='13' height='10' rx='2' fill='#ffffff' opacity='0.28'/>
-<path d='M18 33 Q24 35 30 33 L31 38.5 Q24 40.5 17 38.5 Z' fill='#0f172a' opacity='0.7'/>
-<rect x='15.5' y='5.5' width='4' height='2.2' rx='1' fill='#fde68a'/>
-<rect x='28.5' y='5.5' width='4' height='2.2' rx='1' fill='#fde68a'/>
+// Rendered at the screen's pixel density so the marker stays sharp on phones.
+const xmCarSvg = ([light, dark]) => {
+  const size = Math.round(48 * (window.devicePixelRatio || 1));
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 48 48'>
+<defs>
+<linearGradient id='b' x1='0' x2='1' y1='0' y2='0'><stop offset='0' stop-color='${dark}'/><stop offset='0.5' stop-color='${light}'/><stop offset='1' stop-color='${dark}'/></linearGradient>
+<linearGradient id='g' x1='0' x2='0' y1='0' y2='1'><stop offset='0' stop-color='#1e293b'/><stop offset='1' stop-color='#475569'/></linearGradient>
+</defs>
+<ellipse cx='24' cy='44' rx='11' ry='2.6' fill='rgba(0,0,0,0.25)'/>
+<rect x='11.2' y='12' width='3' height='6' rx='1.2' fill='#111827'/>
+<rect x='33.8' y='12' width='3' height='6' rx='1.2' fill='#111827'/>
+<rect x='11.2' y='31' width='3' height='6' rx='1.2' fill='#111827'/>
+<rect x='33.8' y='31' width='3' height='6' rx='1.2' fill='#111827'/>
+<path d='M24 3.5 C30.5 3.5 34 6.5 34 12 L34 37 C34 41.5 31 44 24 44 C17 44 14 41.5 14 37 L14 12 C14 6.5 17.5 3.5 24 3.5 Z' fill='url(#b)' stroke='#ffffff' stroke-width='1.6'/>
+<path d='M16.8 15.5 Q24 11.5 31.2 15.5 L29.6 21.5 Q24 19.8 18.4 21.5 Z' fill='url(#g)'/>
+<rect x='18.3' y='22.4' width='11.4' height='9.6' rx='2' fill='${dark}' opacity='0.55'/>
+<path d='M18.4 33 Q24 34.8 29.6 33 L30.6 38.4 Q24 40.2 17.4 38.4 Z' fill='url(#g)' opacity='0.9'/>
+<path d='M14 17 L11.5 18.6 L14 19.4 Z M34 17 L36.5 18.6 L34 19.4 Z' fill='${dark}'/>
+<rect x='16.3' y='5.4' width='4.2' height='2.2' rx='1' fill='#fef9c3'/>
+<rect x='27.5' y='5.4' width='4.2' height='2.2' rx='1' fill='#fef9c3'/>
+<rect x='16.8' y='41.2' width='3.6' height='1.6' rx='0.8' fill='#f87171'/>
+<rect x='27.6' y='41.2' width='3.6' height='1.6' rx='0.8' fill='#f87171'/>
 </svg>`)}`;
+};
 
 const theme = createTheme({
   palette: {
