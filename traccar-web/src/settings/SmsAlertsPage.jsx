@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Alert,
@@ -92,24 +92,52 @@ const useStyles = makeStyles()((theme) => ({
   },
 }));
 
-const NumbersField = ({ label, helper, value, onChange, color }) => (
-  <Autocomplete
-    multiple
-    freeSolo
-    options={[]}
-    value={value}
-    onChange={(_, items) => onChange(items.flatMap(splitNumbers))}
-    renderValue={(items, getItemProps) =>
-      items.map((option, index) => {
-        const { key, ...itemProps } = getItemProps({ index });
-        return <Chip key={key} label={option} color={color} {...itemProps} />;
-      })
+// Numbers are committed as chips on Enter, comma, space or when leaving the field, so a
+// typed number is never lost when pressing Save.
+const NumbersField = ({ label, helper, value, onChange, color, pendingRef }) => {
+  const [input, setInput] = useState('');
+  const commit = (text) => {
+    const added = splitNumbers(text);
+    if (added.length) {
+      onChange([...new Set([...value, ...added])]);
     }
-    renderInput={(params) => (
-      <TextField {...params} label={label} placeholder="03001234567" helperText={helper} />
-    )}
-  />
-);
+    setInput('');
+    if (pendingRef) pendingRef.current = '';
+  };
+  return (
+    <Autocomplete
+      multiple
+      freeSolo
+      options={[]}
+      value={value}
+      inputValue={input}
+      onInputChange={(_, text, reason) => {
+        if (reason === 'reset') return;
+        if (/[,;\s]$/.test(text)) {
+          commit(text);
+        } else {
+          setInput(text);
+          if (pendingRef) pendingRef.current = text;
+        }
+      }}
+      onChange={(_, items) => {
+        onChange([...new Set(items.flatMap(splitNumbers))]);
+        setInput('');
+        if (pendingRef) pendingRef.current = '';
+      }}
+      onBlur={() => commit(input)}
+      renderValue={(items, getItemProps) =>
+        items.map((option, index) => {
+          const { key, ...itemProps } = getItemProps({ index });
+          return <Chip key={key} label={option} color={color} {...itemProps} />;
+        })
+      }
+      renderInput={(params) => (
+        <TextField {...params} label={label} placeholder="03001234567" helperText={helper} />
+      )}
+    />
+  );
+};
 
 const SmsAlertsPage = () => {
   const { classes } = useStyles();
@@ -122,6 +150,8 @@ const SmsAlertsPage = () => {
   const firstDevice = useSelector((state) => Object.values(state.devices.items)[0]);
 
   const [smsNumbers, setSmsNumbers] = useState(() => splitNumbers(user.phone));
+  const smsPendingRef = useRef('');
+  const waPendingRef = useRef('');
   const [waNumbers, setWaNumbers] = useState(() =>
     splitNumbers(user.attributes?.['xm.whatsappNumbers']),
   );
@@ -164,8 +194,12 @@ const SmsAlertsPage = () => {
   const save = useCatch(async () => {
     setSaving(true);
     try {
-      const phone = smsNumbers.join(',');
-      const whatsapp = waNumbers.join(',');
+      const smsAll = [...new Set([...smsNumbers, ...splitNumbers(smsPendingRef.current)])];
+      const waAll = [...new Set([...waNumbers, ...splitNumbers(waPendingRef.current)])];
+      setSmsNumbers(smsAll);
+      setWaNumbers(waAll);
+      const phone = smsAll.join(',');
+      const whatsapp = waAll.join(',');
       if (
         phone !== (user.phone || '') ||
         whatsapp !== (user.attributes?.['xm.whatsappNumbers'] || '')
@@ -265,6 +299,7 @@ const SmsAlertsPage = () => {
               value={waNumbers}
               onChange={setWaNumbers}
               color="success"
+              pendingRef={waPendingRef}
             />
           </CardContent>
         </Card>
@@ -293,6 +328,7 @@ const SmsAlertsPage = () => {
               value={smsNumbers}
               onChange={setSmsNumbers}
               color="primary"
+              pendingRef={smsPendingRef}
             />
           </CardContent>
         </Card>

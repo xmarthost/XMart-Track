@@ -455,8 +455,7 @@ const IntegrationsPage = () => {
             />
             <TextField
               label="API URL"
-              placeholder="https://xmartsender.com/api/send/whatsapp"
-              value={attributes['xm.wa.url'] || ''}
+              value={attributes['xm.wa.url'] ?? 'https://xmartsender.com/api/send/whatsapp'}
               onChange={(e) => setAttribute('xm.wa.url', e.target.value.trim())}
             />
           </CardContent>
