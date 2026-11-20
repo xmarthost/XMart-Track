@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { ButtonBase, IconButton, Paper, Typography } from '@mui/material';
@@ -161,7 +162,7 @@ const MobileDeviceSheet = ({ deviceId, onClose }) => {
   const state = getDeviceState(device, position);
   const stateText = {
     moving: `${t('xmMoving')} ${position ? Math.round(speedFromKnots(position.speed, speedUnit)) : 0} ${speedUnitString(speedUnit, t)}`,
-    static: `${t('xmStatic')} ${position ? `${sinceNow(position.fixTime)} ` : ''}${position?.valid === false ? 'LBS' : 'GPS'}`,
+    static: `${attributes.ignition ? t('xmIdle') : t('xmStatic')} ${!attributes.ignition && extras.accSince ? `${sinceNow(extras.accSince)} ` : ''}${position?.valid === false ? 'LBS' : 'GPS'}`,
     offline: `${t('xmOffline')} ${sinceNow(device.lastUpdate)}`,
     inactive: t('xmInactive'),
   }[state];
@@ -259,11 +260,15 @@ const MobileDeviceSheet = ({ deviceId, onClose }) => {
           <div className={classes.grid}>
             <div className={classes.row}>
               <ScheduleIcon />
-              <Typography variant="body2">{formatTime(device.lastUpdate, 'seconds')}</Typography>
+              <Typography variant="body2" noWrap>
+                {dayjs(device.lastUpdate).format('YYYY-MM-DD HH:mm:ss')}
+              </Typography>
             </div>
             <div className={classes.row}>
               <LocationOnOutlinedIcon />
-              <Typography variant="body2">{formatTime(position.fixTime, 'minutes')}</Typography>
+              <Typography variant="body2" noWrap>
+                {dayjs(position.fixTime).format('YYYY-MM-DD HH:mm')}
+              </Typography>
             </div>
             <div className={classes.row}>
               <MemoryIcon />

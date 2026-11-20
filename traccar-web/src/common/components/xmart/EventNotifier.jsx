@@ -7,6 +7,28 @@ import { useTranslation } from '../LocalizationProvider';
 import { prefixString } from '../../util/stringUtils';
 import { formatAlarm } from '../../util/formatter';
 
+// Android Chrome forbids `new Notification()`; notifications must go through the
+// service worker there. Never let a notification problem break the page.
+const showSystemNotification = (title, body, eventId, onClick) => {
+  const options = { body, tag: `event-${eventId}`, data: { url: `event/${eventId}` } };
+  try {
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.ready
+        .then((registration) => registration.showNotification(title, options))
+        .catch(() => {});
+      return;
+    }
+    const notification = new Notification(title, options);
+    notification.onclick = () => {
+      window.focus();
+      onClick();
+      notification.close();
+    };
+  } catch {
+    // notifications not supported here
+  }
+};
+
 const severityFor = (type) => {
   if (type === 'alarm' || type === 'deviceOverspeed') return 'error';
   if (type === 'ignitionOn') return 'success';
@@ -25,8 +47,12 @@ const EventNotifier = () => {
   const seenRef = useRef(null);
 
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().catch(() => {});
+    try {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Promise.resolve(Notification.requestPermission()).catch(() => {});
+      }
+    } catch {
+      // not supported
     }
   }, []);
 
@@ -48,15 +74,12 @@ const EventNotifier = () => {
     const text = `${devices[event.deviceId]?.name || ''} • ${label} • ${dayjs(event.eventTime).format('HH:mm')}`;
     setCurrent({ id: event.id, text, severity: severityFor(event.type) });
     if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-      const notification = new Notification(label, {
-        body: `${devices[event.deviceId]?.name || ''} • ${dayjs(event.eventTime).format('HH:mm')}`,
-        tag: `event-${event.id}`,
-      });
-      notification.onclick = () => {
-        window.focus();
-        navigate(`/event/${event.id}`);
-        notification.close();
-      };
+      showSystemNotification(
+        label,
+        `${devices[event.deviceId]?.name || ''} • ${dayjs(event.eventTime).format('HH:mm')}`,
+        event.id,
+        () => navigate(`/event/${event.id}`),
+      );
     }
   }, [events, devices, t, navigate]);
 

@@ -10,6 +10,11 @@ export default (server, darkMode, direction) =>
       createTheme({
         typography: {
           fontFamily: 'Roboto,Segoe UI,Helvetica Neue,Arial,sans-serif',
+          // XMart: slightly heavier text for readability on phones
+          body1: { fontWeight: 500 },
+          body2: { fontWeight: 500 },
+          caption: { fontWeight: 500 },
+          button: { fontWeight: 600 },
         },
         palette: palette(server, darkMode),
         direction,

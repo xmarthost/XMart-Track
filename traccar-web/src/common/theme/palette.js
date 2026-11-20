@@ -22,6 +22,7 @@ export default (server, darkMode) => {
     background: {
       default: darkMode ? grey[900] : '#F4F8FD',
     },
+    ...(darkMode ? {} : { text: { primary: '#0F172A', secondary: '#475569' } }),
     primary: {
       main: darkMode ? brand.tealLight : primary,
     },

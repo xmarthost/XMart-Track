@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { Chip, Fab, IconButton, Paper, Switch, Toolbar, Tooltip, Typography } from '@mui/material';
 import NavigationIcon from '@mui/icons-material/Navigation';
 import AddressValue from '../common/components/AddressValue';
+import useDeviceExtras from '../common/util/useDeviceExtras';
 import { makeStyles } from 'tss-react/mui';
 import HistoryIcon from '@mui/icons-material/History';
 import MapView, { map } from '../map/core/MapView';
@@ -119,6 +120,7 @@ const TrackingPage = () => {
   }, [follow, position]);
 
   const state = getDeviceState(device, position);
+  const extras = useDeviceExtras(deviceId, position?.attributes?.ignition);
 
   return (
     <div className={classes.root}>
@@ -177,7 +179,7 @@ const TrackingPage = () => {
           <Typography variant="h6" fontWeight={700} sx={{ color: stateColors[state] }}>
             {state === 'moving'
               ? `${t('xmMoving')} ${Math.round(speedFromKnots(position.speed, speedUnit))} ${speedUnitString(speedUnit, t)}`
-              : `${t(`xm${state.charAt(0).toUpperCase()}${state.slice(1)}`)} ${sinceNow(position.fixTime)}`}
+              : `${t(`xm${state.charAt(0).toUpperCase()}${state.slice(1)}`)} ${state === 'offline' ? sinceNow(device?.lastUpdate) : !position.attributes?.ignition && extras.accSince ? sinceNow(extras.accSince) : ''}`}
           </Typography>
           <Typography variant="body2" sx={{ mt: 0.5, pr: 7 }}>
             <AddressValue

@@ -23,7 +23,8 @@ import { makeStyles } from 'tss-react/mui';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import BackIcon from '../common/components/BackIcon';
 import { useTranslation } from '../common/components/LocalizationProvider';
-import { useCatch } from '../reactHelper';
+import dayjs from 'dayjs';
+import { useAsyncTask, useCatch } from '../reactHelper';
 import fetchOrThrow from '../common/util/fetchOrThrow';
 import { useRestriction } from '../common/util/permissions';
 
@@ -43,6 +44,8 @@ const groups = [
     items: [
       { key: 'status', label: 'xmQueryStatus', type: 'custom', data: 'status#' },
       { key: 'location', label: 'xmQueryLocation', type: 'custom', data: 'DW' },
+      { key: 'param', label: 'xmQueryParams', type: 'custom', data: 'PARAM#' },
+      { key: 'accQuery', label: 'xmQueryAccAlert', type: 'custom', data: 'ACCALM#' },
     ],
   },
   {
@@ -55,6 +58,21 @@ const groups = [
         type: 'custom',
         data: 'sos,a,{value}#',
         input: 'xmSosNumbers',
+      },
+      {
+        key: 'accOn',
+        label: 'xmAccSmsOn',
+        type: 'custom',
+        data: 'ACCALM,ON,1#',
+        note: 'xmAccSmsNote',
+      },
+      { key: 'accOff', label: 'xmAccSmsOff', type: 'custom', data: 'ACCALM,OFF#' },
+      {
+        key: 'realtime',
+        label: 'xmRealtimeMode',
+        type: 'custom',
+        data: 'TIMER,10,300#',
+        note: 'xmRealtimeNote',
       },
       {
         key: 'timer',
@@ -151,6 +169,36 @@ const DeviceCommandsPage = () => {
   const [selected, setSelected] = useState(null);
   const [value, setValue] = useState('');
   const [result, setResult] = useState(null);
+  const [history, setHistory] = useState([]);
+  const liveReplies = useSelector((state) =>
+    state.events.items.filter((e) => e.deviceId === deviceId && e.type === 'commandResult'),
+  );
+
+  useAsyncTask(
+    async ({ signal }) => {
+      const query = new URLSearchParams({
+        deviceId,
+        type: 'commandResult',
+        from: dayjs().subtract(3, 'day').toISOString(),
+        to: dayjs().add(1, 'minute').toISOString(),
+      });
+      const response = await fetch(`api/reports/events?${query.toString()}`, {
+        headers: { Accept: 'application/json' },
+        signal,
+      });
+      if (response.ok) {
+        setHistory(await response.json());
+      }
+    },
+    // result changes after a command is sent: reload the reply list
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
+    [deviceId, result],
+  );
+
+  const replies = [...liveReplies, ...history]
+    .filter((item, index, all) => all.findIndex((other) => other.id === item.id) === index)
+    .sort((a, b) => dayjs(b.eventTime).valueOf() - dayjs(a.eventTime).valueOf())
+    .slice(0, 20);
 
   const text = selected?.data ? selected.data.replace('{value}', value.trim()) : null;
 
@@ -213,6 +261,33 @@ const DeviceCommandsPage = () => {
             </List>
           </Paper>
         ))}
+        <Paper elevation={0} className={classes.group}>
+          <Typography className={classes.groupTitle}>{t('xmCommandReplies')}</Typography>
+          {replies.length ? (
+            <List disablePadding>
+              {replies.map((reply) => (
+                <Box
+                  key={reply.id}
+                  sx={{ px: 2, py: 1.25, borderBottom: 1, borderColor: 'divider' }}
+                >
+                  <Typography variant="caption" color="textSecondary">
+                    {dayjs(reply.eventTime).format('YYYY-MM-DD HH:mm:ss')}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ wordBreak: 'break-word', fontFamily: 'monospace' }}
+                  >
+                    {reply.attributes?.result}
+                  </Typography>
+                </Box>
+              ))}
+            </List>
+          ) : (
+            <Typography variant="body2" color="textSecondary" sx={{ px: 2, pb: 2 }}>
+              {t('xmNoReplies')}
+            </Typography>
+          )}
+        </Paper>
       </div>
       <Dialog open={Boolean(selected)} onClose={() => setSelected(null)} fullWidth maxWidth="xs">
         <DialogTitle>{selected && t(selected.label)}</DialogTitle>
@@ -228,6 +303,11 @@ const DeviceCommandsPage = () => {
             />
           )}
           {text && <Box className={classes.code}>{text}</Box>}
+          {selected?.note && (
+            <Typography variant="caption" color="textSecondary">
+              {t(selected.note)}
+            </Typography>
+          )}
           {device?.status !== 'online' && <Alert severity="info">{t('xmCommandQueued')}</Alert>}
         </DialogContent>
         <DialogActions>

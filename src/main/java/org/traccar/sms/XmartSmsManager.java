@@ -31,6 +31,7 @@ public class XmartSmsManager implements SmsManager {
     public static final String KEY_TEMPLATE = "xm.sms.template";
     public static final String KEY_AUTHORIZATION_HEADER = "xm.sms.authorizationHeader";
     public static final String KEY_AUTHORIZATION = "xm.sms.authorization";
+    public static final String KEY_ENABLED = "xm.sms.enabled";
 
     private final Client client;
     private final CacheManager cacheManager;
@@ -66,6 +67,10 @@ public class XmartSmsManager implements SmsManager {
 
     @Override
     public CompletableFuture<Void> sendMessage(String phone, String message, boolean command) {
+        Server server = cacheManager.getServer();
+        if (server != null && !server.getBoolean(KEY_ENABLED) && server.hasAttribute(KEY_ENABLED)) {
+            return CompletableFuture.completedFuture(null);
+        }
         SmsManager manager = resolve();
         if (manager == null) {
             return CompletableFuture.failedFuture(new MessageException("SMS gateway is not configured"));

@@ -61,6 +61,8 @@ const TrackerSmsDialog = ({ deviceId, onClose }) => {
         ? fillCommand(g19s.sosCommand, { numbers: sosNumbers.join(',') })
         : '',
     },
+    { key: 'accOn', label: t('xmAccSmsOn'), command: 'ACCALM,ON,1#' },
+    { key: 'accOff', label: t('xmAccSmsOff'), command: 'ACCALM,OFF#' },
     { key: 'status', label: t('xmCmdCheck'), command: g19s.statusCommand },
     { key: 'location', label: t('xmCmdLocation'), command: g19s.locationCommand },
   ].filter((item) => item.command);

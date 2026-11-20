@@ -369,6 +369,20 @@ const IntegrationsPage = () => {
             avatar={<SmsIcon />}
             title={t('xmSmsGateway')}
             subheader={t('xmSmsGatewayHelp')}
+            action={
+              <FormControlLabel
+                label={attributes['xm.sms.enabled'] === false ? t('xmDisabled') : t('xmEnabled')}
+                labelPlacement="start"
+                control={
+                  <Checkbox
+                    checked={attributes['xm.sms.enabled'] !== false}
+                    onChange={(e) =>
+                      setAttribute('xm.sms.enabled', e.target.checked ? true : false)
+                    }
+                  />
+                }
+              />
+            }
           />
           <CardContent className={classes.grid}>
             <FormControl>
