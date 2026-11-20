@@ -109,8 +109,16 @@ const useStyles = makeStyles()((theme) => ({
     gap: theme.spacing(1.5),
   },
   group: {
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
+    flexShrink: 0,
+    boxShadow: '0 3px 14px rgba(15, 23, 42, 0.06)',
+    '& .MuiListItemButton-root': {
+      minHeight: 52,
+    },
+    '& .MuiListItemButton-root:last-of-type': {
+      borderBottom: 'none',
+    },
   },
   groupTitle: {
     fontWeight: 700,

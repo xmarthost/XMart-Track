@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
 import SmsIcon from '@mui/icons-material/Sms';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import dayjs from 'dayjs';
 import PageLayout from '../common/components/PageLayout';
@@ -37,7 +38,18 @@ const alertTypes = [
   { key: 'offline', types: ['deviceOffline'], label: 'xmAlertOffline' },
 ];
 
-const hasSms = (notification) => (notification.notificators || '').split(',').includes('sms');
+const WHATSAPP = 'xmwhatsapp';
+
+const splitNumbers = (value) =>
+  (value || '')
+    .split(/[,;\s]+/)
+    .map((it) => it.trim())
+    .filter(Boolean);
+
+const notificatorList = (notification) => (notification.notificators || '').split(',');
+
+// notifications created by this page carry attributes.xmSms
+const isManaged = (notification) => Boolean(notification.attributes?.xmSms);
 
 const useStyles = makeStyles()((theme) => ({
   container: {
@@ -61,20 +73,43 @@ const useStyles = makeStyles()((theme) => ({
     gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
     gap: theme.spacing(0.5, 2),
   },
-  preview: {
-    maxWidth: 360,
+  previews: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+    gap: theme.spacing(2),
+  },
+  bubble: {
     padding: theme.spacing(1.5, 2),
     borderRadius: 16,
-    backgroundColor: theme.palette.action.hover,
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
   },
   footer: {
     display: 'flex',
+    flexWrap: 'wrap',
     justifyContent: 'flex-end',
     gap: theme.spacing(1),
   },
 }));
+
+const NumbersField = ({ label, helper, value, onChange, color }) => (
+  <Autocomplete
+    multiple
+    freeSolo
+    options={[]}
+    value={value}
+    onChange={(_, items) => onChange(items.flatMap(splitNumbers))}
+    renderValue={(items, getItemProps) =>
+      items.map((option, index) => {
+        const { key, ...itemProps } = getItemProps({ index });
+        return <Chip key={key} label={option} color={color} {...itemProps} />;
+      })
+    }
+    renderInput={(params) => (
+      <TextField {...params} label={label} placeholder="03001234567" helperText={helper} />
+    )}
+  />
+);
 
 const SmsAlertsPage = () => {
   const { classes } = useStyles();
@@ -86,10 +121,14 @@ const SmsAlertsPage = () => {
   const serverAttributes = useSelector((state) => state.session.server.attributes);
   const firstDevice = useSelector((state) => Object.values(state.devices.items)[0]);
 
-  const [numbers, setNumbers] = useState(() => (user.phone || '').split(/[,;\s]+/).filter(Boolean));
+  const [smsNumbers, setSmsNumbers] = useState(() => splitNumbers(user.phone));
+  const [waNumbers, setWaNumbers] = useState(() =>
+    splitNumbers(user.attributes?.['xm.whatsappNumbers']),
+  );
   const [notifications, setNotifications] = useState([]);
   const [enabled, setEnabled] = useState({});
-  const [smsAvailable, setSmsAvailable] = useState(true);
+  const [channels, setChannels] = useState({ sms: true, whatsapp: true });
+  const [available, setAvailable] = useState({ sms: true, whatsapp: true });
   const [message, setMessage] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -99,62 +138,84 @@ const SmsAlertsPage = () => {
       fetchOrThrow('api/notifications/notificators', { signal }),
     ]);
     const items = await notificationsResponse.json();
-    const notificators = await notificatorsResponse.json();
+    const notificators = (await notificatorsResponse.json()).map((it) => it.type);
     setNotifications(items);
-    setSmsAvailable(notificators.some((it) => it.type === 'sms'));
+    setAvailable({ sms: notificators.includes('sms'), whatsapp: notificators.includes(WHATSAPP) });
+    const managed = items.filter(isManaged);
     const state = {};
     alertTypes.forEach((alert) => {
       state[alert.key] = alert.types.every((type) =>
-        items.some((n) => n.type === type && hasSms(n)),
+        items.some(
+          (n) =>
+            n.type === type &&
+            (notificatorList(n).includes('sms') || notificatorList(n).includes(WHATSAPP)),
+        ),
       );
     });
     setEnabled(state);
+    if (managed.length) {
+      setChannels({
+        sms: managed.some((n) => notificatorList(n).includes('sms')),
+        whatsapp: managed.some((n) => notificatorList(n).includes(WHATSAPP)),
+      });
+    }
   }, []);
 
   const save = useCatch(async () => {
     setSaving(true);
     try {
-      const phone = numbers.join(',');
-      if (phone !== (user.phone || '')) {
+      const phone = smsNumbers.join(',');
+      const whatsapp = waNumbers.join(',');
+      if (
+        phone !== (user.phone || '') ||
+        whatsapp !== (user.attributes?.['xm.whatsappNumbers'] || '')
+      ) {
+        const attributes = { ...user.attributes };
+        if (whatsapp) {
+          attributes['xm.whatsappNumbers'] = whatsapp;
+        } else {
+          delete attributes['xm.whatsappNumbers'];
+        }
         const response = await fetchOrThrow(`api/users/${user.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...user, phone: phone || null }),
+          body: JSON.stringify({ ...user, phone: phone || null, attributes }),
         });
         dispatch(sessionActions.updateUser(await response.json()));
       }
+
+      const wanted = ['web'];
+      if (channels.sms && available.sms) wanted.push('sms');
+      if (channels.whatsapp && available.whatsapp) wanted.push(WHATSAPP);
+      const notificators = wanted.join(',');
+
       const updated = [...notifications];
       for (const alert of alertTypes) {
         for (const type of alert.types) {
-          const existing = updated.find((n) => n.type === type && hasSms(n));
-          if (enabled[alert.key] && !existing) {
+          const existing = updated.find((n) => n.type === type && isManaged(n));
+          const on = enabled[alert.key] && wanted.length > 1;
+          if (on && !existing) {
             const response = await fetchOrThrow('api/notifications', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 type,
                 always: true,
-                notificators: 'sms,web',
+                notificators,
                 attributes: { xmSms: true },
               }),
             });
             updated.push(await response.json());
-          } else if (!enabled[alert.key] && existing) {
-            if (existing.attributes?.xmSms) {
-              await fetchOrThrow(`api/notifications/${existing.id}`, { method: 'DELETE' });
-              updated.splice(updated.indexOf(existing), 1);
-            } else {
-              const notificators = existing.notificators
-                .split(',')
-                .filter((it) => it !== 'sms')
-                .join(',');
-              const response = await fetchOrThrow(`api/notifications/${existing.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...existing, notificators }),
-              });
-              updated[updated.indexOf(existing)] = await response.json();
-            }
+          } else if (on && existing && existing.notificators !== notificators) {
+            const response = await fetchOrThrow(`api/notifications/${existing.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...existing, notificators }),
+            });
+            updated[updated.indexOf(existing)] = await response.json();
+          } else if (!on && existing) {
+            await fetchOrThrow(`api/notifications/${existing.id}`, { method: 'DELETE' });
+            updated.splice(updated.indexOf(existing), 1);
           }
         }
       }
@@ -165,57 +226,73 @@ const SmsAlertsPage = () => {
     }
   });
 
-  const sendTest = useCatch(async () => {
-    await fetchOrThrow('api/notifications/test/sms', { method: 'POST' });
+  const sendTest = useCatch(async (notificator) => {
+    await fetchOrThrow(`api/notifications/test/${notificator}`, { method: 'POST' });
     setMessage(t('xmTestSent'));
   });
 
   const sampleName = firstDevice?.name || 'LEA-19-961';
-  const preview = `${sampleName}: Acc On Alarm :DateTime: ${dayjs().format('YYYY-MM-DD HH:mm:ss')} ,http://maps.google.com/maps?q=N31.396606,E74.176624`;
-  const gatewayConfigured = Boolean(serverAttributes['xm.sms.url']);
+  const now = dayjs().format('YYYY-MM-DD HH:mm:ss');
+  const smsPreview = `${sampleName}: Acc On Alarm :DateTime: ${now} ,http://maps.google.com/maps?q=N31.396606,E74.176624`;
+  const waPreview = `🚘 *${sampleName}*\n🟢 Vehicle started (ACC ON)\n🕒 ${now}\n📍 Bahria Town, Lahore, Punjab, Pakistan\n🗺️ https://maps.google.com/maps?q=31.396606,74.176624\n\n_XMart Track_`;
+  const smsGateway = Boolean(serverAttributes['xm.sms.url']);
+  const waGateway = Boolean(serverAttributes['xm.wa.secret'] && serverAttributes['xm.wa.account']);
 
   return (
     <PageLayout menu={<SettingsMenu />} breadcrumbs={['settingsTitle', 'xmSmsAlerts']}>
       <Container maxWidth="md" className={classes.container}>
-        {!smsAvailable && <Alert severity="warning">{t('xmSmsNotEnabled')}</Alert>}
-        {smsAvailable && !gatewayConfigured && (
-          <Alert severity={admin ? 'warning' : 'info'}>{t('xmSmsGatewayMissing')}</Alert>
-        )}
+        <Card variant="outlined">
+          <CardHeader
+            className={classes.header}
+            avatar={<WhatsAppIcon sx={{ color: '#25D366' }} />}
+            title={t('xmWhatsappAlerts')}
+            subheader={t('xmWhatsappAlertsHelp')}
+            action={
+              <Switch
+                checked={channels.whatsapp}
+                onChange={(e) => setChannels({ ...channels, whatsapp: e.target.checked })}
+              />
+            }
+          />
+          <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {!available.whatsapp && <Alert severity="warning">{t('xmWhatsappNotEnabled')}</Alert>}
+            {available.whatsapp && !waGateway && (
+              <Alert severity={admin ? 'warning' : 'info'}>{t('xmWhatsappGatewayMissing')}</Alert>
+            )}
+            <NumbersField
+              label={t('xmWhatsappNumbers')}
+              helper={t('xmSmsNumbersHelp')}
+              value={waNumbers}
+              onChange={setWaNumbers}
+              color="success"
+            />
+          </CardContent>
+        </Card>
+
         <Card variant="outlined">
           <CardHeader
             className={classes.header}
             avatar={<SmsIcon />}
-            title={t('xmSmsAlerts')}
+            title={t('xmSmsCard')}
             subheader={t('xmSmsAlertsHelp')}
+            action={
+              <Switch
+                checked={channels.sms}
+                onChange={(e) => setChannels({ ...channels, sms: e.target.checked })}
+              />
+            }
           />
-          <CardContent>
-            <Autocomplete
-              multiple
-              freeSolo
-              options={[]}
-              value={numbers}
-              onChange={(_, value) =>
-                setNumbers(
-                  value
-                    .flatMap((it) => it.split(/[,;\s]+/))
-                    .map((it) => it.trim())
-                    .filter(Boolean),
-                )
-              }
-              renderValue={(value, getItemProps) =>
-                value.map((option, index) => {
-                  const { key, ...itemProps } = getItemProps({ index });
-                  return <Chip key={key} label={option} color="primary" {...itemProps} />;
-                })
-              }
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label={t('xmSmsNumbers')}
-                  placeholder="03001234567"
-                  helperText={t('xmSmsNumbersHelp')}
-                />
-              )}
+          <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {!available.sms && <Alert severity="warning">{t('xmSmsNotEnabled')}</Alert>}
+            {available.sms && !smsGateway && (
+              <Alert severity={admin ? 'warning' : 'info'}>{t('xmSmsGatewayMissing')}</Alert>
+            )}
+            <NumbersField
+              label={t('xmSmsNumbers')}
+              helper={t('xmSmsNumbersHelp')}
+              value={smsNumbers}
+              onChange={setSmsNumbers}
+              color="primary"
             />
           </CardContent>
         </Card>
@@ -240,18 +317,41 @@ const SmsAlertsPage = () => {
               />
             ))}
           </CardContent>
-          <CardContent>
-            <Typography variant="subtitle2" gutterBottom>
-              {t('xmSmsPreview')}
-            </Typography>
-            <Box className={classes.preview}>
-              <Typography variant="body2">{preview}</Typography>
+          <CardContent className={classes.previews}>
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                WhatsApp
+              </Typography>
+              <Box className={classes.bubble} sx={{ backgroundColor: '#DCF8C6' }}>
+                <Typography variant="body2">{waPreview}</Typography>
+              </Box>
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                SMS
+              </Typography>
+              <Box className={classes.bubble} sx={{ backgroundColor: 'action.hover' }}>
+                <Typography variant="body2">{smsPreview}</Typography>
+              </Box>
             </Box>
           </CardContent>
         </Card>
 
         <div className={classes.footer}>
-          <Button variant="outlined" onClick={sendTest} disabled={!smsAvailable || !numbers.length}>
+          <Button
+            variant="outlined"
+            color="success"
+            startIcon={<WhatsAppIcon />}
+            onClick={() => sendTest(WHATSAPP)}
+            disabled={!available.whatsapp || !waNumbers.length}
+          >
+            {t('xmSendTestWhatsapp')}
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => sendTest('sms')}
+            disabled={!available.sms || !smsNumbers.length}
+          >
             {t('xmSendTest')}
           </Button>
           <Button variant="contained" onClick={save} disabled={saving}>

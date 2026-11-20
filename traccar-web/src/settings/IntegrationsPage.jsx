@@ -28,6 +28,7 @@ import PaletteIcon from '@mui/icons-material/Palette';
 import StraightenIcon from '@mui/icons-material/Straighten';
 import DnsIcon from '@mui/icons-material/Dns';
 import SmsIcon from '@mui/icons-material/Sms';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import RouterIcon from '@mui/icons-material/Router';
 import PageLayout from '../common/components/PageLayout';
 import SettingsMenu from './components/SettingsMenu';
@@ -430,6 +431,34 @@ const IntegrationsPage = () => {
                 {smsPresets.find((it) => it.id === attributes['xm.sms.provider']).help}
               </Alert>
             )}
+          </CardContent>
+        </Card>
+
+        <Card variant="outlined">
+          <CardHeader
+            className={classes.header}
+            avatar={<WhatsAppIcon sx={{ color: '#25D366' }} />}
+            title={t('xmWhatsappGateway')}
+            subheader={t('xmWhatsappGatewayHelp')}
+          />
+          <CardContent className={classes.grid}>
+            <PasswordField
+              label="API secret"
+              value={attributes['xm.wa.secret'] || ''}
+              onChange={(e) => setAttribute('xm.wa.secret', e.target.value.trim())}
+            />
+            <TextField
+              label={t('xmWhatsappAccount')}
+              helperText={t('xmWhatsappAccountHelp')}
+              value={attributes['xm.wa.account'] || ''}
+              onChange={(e) => setAttribute('xm.wa.account', e.target.value.trim())}
+            />
+            <TextField
+              label="API URL"
+              placeholder="https://xmartsender.com/api/send/whatsapp"
+              value={attributes['xm.wa.url'] || ''}
+              onChange={(e) => setAttribute('xm.wa.url', e.target.value.trim())}
+            />
           </CardContent>
         </Card>
 

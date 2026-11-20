@@ -137,7 +137,7 @@ SQL
     <entry key='web.url'>$WEB_URL</entry>
     <entry key='web.persistSession'>true</entry>
 
-    <entry key='notificator.types'>web,sms,command</entry>
+    <entry key='notificator.types'>web,sms,command,xmwhatsapp</entry>
 
     <entry key='geocoder.enable'>true</entry>
     <entry key='geocoder.type'>nominatim</entry>
@@ -168,6 +168,7 @@ open(path, 'w', encoding='utf-8').write(text)
 PY
 }
 log "Updating server settings"
+set_config notificator.types 'web,sms,command,xmwhatsapp'
 set_config geocoder.format '%f'
 set_config geocoder.cacheSize '20000'
 set_config processing.copyAttributes.enable 'true'

@@ -61,7 +61,22 @@ export default {
     xmSubmit: 'Submit',
     xmAddAnother: 'Add another',
     xmDone: 'Done',
-    xmSmsAlerts: 'SMS Alerts',
+    xmSmsAlerts: 'SMS & WhatsApp',
+    xmSmsCard: 'SMS alerts',
+    xmWhatsappAlerts: 'WhatsApp alerts',
+    xmWhatsappAlertsHelp:
+      'Get a WhatsApp message with the address and Google Maps link when the vehicle starts, stops or raises an alarm.',
+    xmWhatsappNumbers: 'WhatsApp numbers',
+    xmWhatsappNotEnabled:
+      'WhatsApp notifications are disabled on the server. Run the update command so the installer enables them.',
+    xmWhatsappGatewayMissing:
+      'WhatsApp sender is not configured yet. An administrator must add the XMart Sender API in Admin, API & Integrations.',
+    xmSendTestWhatsapp: 'Send test WhatsApp',
+    xmWhatsappGateway: 'WhatsApp (XMart Sender)',
+    xmWhatsappGatewayHelp:
+      'Sends alerts from your linked WhatsApp number. Copy the API secret from xmartsender.com (Tools, API Keys). The key needs the wa_send permission.',
+    xmWhatsappAccount: 'WhatsApp account unique ID',
+    xmWhatsappAccountHelp: 'Shown in the XMart Sender dashboard under WhatsApp accounts.',
     xmSmsAlertsHelp:
       'Get an SMS with the exact Google Maps location when the vehicle starts or stops. Add one or more mobile numbers.',
     xmSmsNumbers: 'Mobile numbers',
