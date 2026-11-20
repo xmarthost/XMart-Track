@@ -80,7 +80,10 @@ timedatectl set-timezone "$TIMEZONE" 2>/dev/null || true
 # ---------------------------------------------------------------- source + build
 log "Downloading XMart Track ($BRANCH)"
 mkdir -p "$APP_DIR"
+git config --global --get-all safe.directory 2>/dev/null | grep -qx "$SRC_DIR" \
+  || git config --global --add safe.directory "$SRC_DIR"
 if [ -d "$SRC_DIR/.git" ]; then
+  chown -R root:root "$SRC_DIR"
   git -C "$SRC_DIR" fetch --depth 1 origin "$BRANCH"
   git -C "$SRC_DIR" reset --hard "origin/$BRANCH"
 else
@@ -173,7 +176,10 @@ set_config processing.copyAttributes 'power,battery,batteryLevel,ignition,sat,rs
 # ---------------------------------------------------------------- service
 log "Configuring service"
 id xmarttrack >/dev/null 2>&1 || useradd --system --home "$APP_DIR" --shell /usr/sbin/nologin xmarttrack
-chown -R xmarttrack:xmarttrack "$APP_DIR"
+chown xmarttrack:xmarttrack "$APP_DIR"
+for item in "$APP_DIR"/*; do
+  [ "$item" = "$SRC_DIR" ] || chown -R xmarttrack:xmarttrack "$item"
+done
 cat > /etc/systemd/system/xmart-track.service <<UNIT
 [Unit]
 Description=XMart Track GPS server
