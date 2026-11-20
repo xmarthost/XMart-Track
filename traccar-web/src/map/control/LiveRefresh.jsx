@@ -37,7 +37,7 @@ const useStyles = makeStyles()((theme) => ({
 
 // Live data arrives over the websocket; this also re-reads positions every 10 seconds
 // (like other tracking platforms) so the map stays fresh if the connection stalls.
-const LiveRefresh = () => {
+const LiveRefresh = ({ hidden = false }) => {
   const { classes } = useStyles();
   const dispatch = useDispatch();
   const t = useTranslation();
@@ -65,6 +65,9 @@ const LiveRefresh = () => {
     return () => controller.abort();
   }, [seconds, dispatch]);
 
+  if (hidden) {
+    return null;
+  }
   return (
     <Paper elevation={2} className={classes.root}>
       <span

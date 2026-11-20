@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Paper, Tab, Tabs, Typography } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
@@ -7,7 +7,8 @@ import { useTranslation } from '../common/components/LocalizationProvider';
 import { useSearchParams } from 'react-router-dom';
 import MonitorPanel from '../main/xmart/MonitorPanel';
 import MobileDeviceSheet from './MobileDeviceSheet';
-import MapSideControls from '../map/control/MapSideControls';
+import MobileMapControls from './MobileMapControls';
+import { map } from '../map/core/MapView';
 import LiveRefresh from '../map/control/LiveRefresh';
 import xmartIcon from '../resources/images/xmart-icon.png';
 
@@ -64,6 +65,15 @@ const useStyles = makeStyles()((theme) => ({
 
 const MobileMonitor = ({ panelProps, filteredPositions, selectedPosition, onEventsClick }) => {
   const { classes } = useStyles();
+  const contentRef = useRef(null);
+  const sheetOpen = useSelector((state) => Boolean(state.devices.selectedId));
+
+  // keep the vehicle centered in the visible part of the map above the bottom sheet
+  useEffect(() => {
+    const height = contentRef.current?.clientHeight || 0;
+    map.setPadding({ top: 0, left: 0, right: 0, bottom: sheetOpen ? Math.round(height * 0.5) : 0 });
+    return () => map.setPadding({ top: 0, left: 0, right: 0, bottom: 0 });
+  }, [sheetOpen]);
   const dispatch = useDispatch();
   const t = useTranslation();
 
@@ -103,7 +113,7 @@ const MobileMonitor = ({ panelProps, filteredPositions, selectedPosition, onEven
           <Tab value="map" label={t('mapTitle')} />
         </Tabs>
       </Paper>
-      <div className={classes.content}>
+      <div className={classes.content} ref={contentRef}>
         <div
           className={classes.layer}
           style={{ visibility: view === 'map' ? 'visible' : 'hidden' }}
@@ -113,10 +123,11 @@ const MobileMonitor = ({ panelProps, filteredPositions, selectedPosition, onEven
               filteredPositions={filteredPositions}
               selectedPosition={selectedPosition}
               onEventsClick={onEventsClick}
+              bare
             />
           </Suspense>
-          <MapSideControls positions={filteredPositions} />
-          <LiveRefresh />
+          <MobileMapControls devices={panelProps.devices} positions={filteredPositions} />
+          <LiveRefresh hidden />
           {selectedId && (
             <MobileDeviceSheet
               deviceId={selectedId}

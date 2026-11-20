@@ -68,7 +68,7 @@ const initMap = async () => {
   }
 };
 
-const MapView = ({ children }) => {
+const MapView = ({ children, bare = false }) => {
   const theme = useTheme();
 
   const containerRef = useRef(null);
@@ -104,12 +104,16 @@ const MapView = ({ children }) => {
     const attribution = new maplibregl.AttributionControl({ compact: true });
     const navigation = new maplibregl.NavigationControl();
     map.addControl(attribution, theme.direction === 'rtl' ? 'bottom-left' : 'bottom-right');
-    map.addControl(navigation, theme.direction === 'rtl' ? 'top-left' : 'top-right');
+    if (!bare) {
+      map.addControl(navigation, theme.direction === 'rtl' ? 'top-left' : 'top-right');
+    }
     return () => {
-      map.removeControl(navigation);
+      if (!bare) {
+        map.removeControl(navigation);
+      }
       map.removeControl(attribution);
     };
-  }, [theme.direction]);
+  }, [theme.direction, bare]);
 
   useEffect(() => {
     if (maxZoom) {
@@ -151,7 +155,9 @@ const MapView = ({ children }) => {
 
   return (
     <div style={{ width: '100%', height: '100%' }} ref={containerRef}>
-      <MapSwitcher styles={styles} selectedId={selectedStyleId} onSelect={setSelectedStyleId} />
+      {!bare && (
+        <MapSwitcher styles={styles} selectedId={selectedStyleId} onSelect={setSelectedStyleId} />
+      )}
       {mapReady && children}
     </div>
   );

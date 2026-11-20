@@ -20,7 +20,7 @@ import MapRuler from '../map/control/MapRuler';
 import MapNotification from '../map/control/MapNotification';
 import useFeatures from '../common/util/useFeatures';
 
-const MainMap = ({ filteredPositions, selectedPosition, onEventsClick }) => {
+const MainMap = ({ filteredPositions, selectedPosition, onEventsClick, bare = false }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
 
@@ -41,7 +41,7 @@ const MainMap = ({ filteredPositions, selectedPosition, onEventsClick }) => {
 
   return (
     <>
-      <MapView>
+      <MapView bare={bare}>
         <MapOverlay />
         <MapGeofence />
         <MapAccuracy positions={filteredPositions} />
@@ -56,14 +56,14 @@ const MainMap = ({ filteredPositions, selectedPosition, onEventsClick }) => {
         />
         <MapDefaultCamera filteredPositions={filteredPositions} />
         <MapSelectedDevice />
-        <MapRuler positions={filteredPositions} onActiveChange={setRulerActive} />
-        {!features.disableEvents && (
+        {!bare && <MapRuler positions={filteredPositions} onActiveChange={setRulerActive} />}
+        {!bare && !features.disableEvents && (
           <MapNotification enabled={eventsAvailable} onClick={onEventsClick} />
         )}
       </MapView>
-      <MapScale />
-      <MapCurrentLocation />
-      <MapGeocoder />
+      {!bare && <MapScale />}
+      {!bare && <MapCurrentLocation />}
+      {!bare && <MapGeocoder />}
       {desktop && !features.disableDeviceList && (
         <MapPadding
           start={

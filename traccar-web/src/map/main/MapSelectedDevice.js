@@ -37,7 +37,12 @@ const MapSelectedDevice = () => {
       map.easeTo({
         center: toMapCoordinates(position.longitude, position.latitude),
         zoom: currentId !== previousId ? selectZoom : Math.max(map.getZoom(), selectZoom),
-        offset: [0, features.disableStatusCard ? 0 : -dimensions.popupMapOffset / 2],
+        offset: [
+          0,
+          features.disableStatusCard || window.innerWidth < 900
+            ? 0
+            : -dimensions.popupMapOffset / 2,
+        ],
       });
     }
   }, [

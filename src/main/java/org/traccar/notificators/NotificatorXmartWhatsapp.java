@@ -27,9 +27,13 @@ import org.traccar.session.cache.CacheManager;
 
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonReader;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.Form;
+import java.io.StringReader;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
@@ -115,6 +119,18 @@ public class NotificatorXmartWhatsapp extends Notificator {
         return message.toString();
     }
 
+    static boolean isSuccess(String body) {
+        if (body == null || body.isBlank()) {
+            return true;
+        }
+        try (JsonReader reader = Json.createReader(new StringReader(body))) {
+            JsonObject json = reader.readObject();
+            return !json.containsKey("status") || json.getInt("status", 200) == 200;
+        } catch (RuntimeException e) {
+            return true;
+        }
+    }
+
     @Override
     public CompletableFuture<Void> sendAsync(
             User user, NotificationMessage shortMessage, Event event, Position position) {
@@ -140,8 +156,10 @@ public class NotificatorXmartWhatsapp extends Notificator {
                     .param("priority", "1")
                     .param("message", text);
             return WebHelper.post(client.target(url).request(), Entity.form(form), response -> {
-                if (response.getStatus() / 100 != 2) {
-                    throw new MessageException(response.readEntity(String.class));
+                String body = response.readEntity(String.class);
+                // XMart Sender can answer HTTP 200 with an error status inside the JSON body
+                if (response.getStatus() / 100 != 2 || !isSuccess(body)) {
+                    throw new MessageException("XMart Sender (" + number + "): " + body);
                 }
             });
         }).toArray(CompletableFuture[]::new);
