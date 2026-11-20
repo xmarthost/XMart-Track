@@ -1,5 +1,5 @@
 // XMart Track mobile app configuration.
-// GOOGLE_MAPS_API_KEY: Android key with "Maps SDK for Android" enabled (set as a GitHub secret).
+// GOOGLE_MAPS_API_KEY: Android key with "Maps SDK for Android" enabled (a GitHub secret overrides the built-in test key).
 // XMART_SERVER: server address used by default on the login screen.
 module.exports = {
   expo: {
@@ -34,7 +34,7 @@ module.exports = {
       [
         'react-native-maps',
         {
-          androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
+          androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyB5JIXYxqF_yZdrzLBSIHxqJO4tu9c1fOk',
         },
       ],
     ],
