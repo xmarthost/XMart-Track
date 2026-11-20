@@ -27,6 +27,8 @@ import KeyIcon from '@mui/icons-material/VpnKey';
 import PaletteIcon from '@mui/icons-material/Palette';
 import StraightenIcon from '@mui/icons-material/Straighten';
 import DnsIcon from '@mui/icons-material/Dns';
+import SmsIcon from '@mui/icons-material/Sms';
+import RouterIcon from '@mui/icons-material/Router';
 import PageLayout from '../common/components/PageLayout';
 import SettingsMenu from './components/SettingsMenu';
 import PasswordField from '../common/components/PasswordField';
@@ -75,6 +77,30 @@ const providers = [
     name: 'LocationIQ',
     url: 'https://my.locationiq.com/',
     help: 'Optional. A shared demo key is used when empty.',
+  },
+];
+
+const smsPresets = [
+  {
+    id: 'smsgate',
+    name: 'Android phone (SMS Gateway for Android)',
+    url: 'https://api.sms-gate.app/3rdparty/v1/message',
+    template: '{"textMessage":{"text":"{message}"},"phoneNumbers":["{phone}"]}',
+    help: 'Install "SMS Gateway for Android" (sms-gate.app) on a spare Android phone, turn on Cloud server, and copy the username and password shown in the app. SMS are sent from that phone\'s SIM.',
+  },
+  {
+    id: 'traccar',
+    name: 'Traccar SMS Gateway app',
+    url: '',
+    template: '{"to":"{phone}","message":"{message}"}',
+    help: 'Install the Traccar SMS Gateway app on an Android phone and copy its URL and token into the fields above.',
+  },
+  {
+    id: 'custom',
+    name: 'Custom HTTP SMS API',
+    url: '',
+    template: '',
+    help: 'Use any SMS provider with an HTTP API. Put {phone} and {message} where the provider expects them.',
   },
 ];
 
@@ -178,6 +204,8 @@ const IntegrationsPage = () => {
     attributes: { ...original.attributes },
   }));
   const [saved, setSaved] = useState(false);
+  const [smsUser, setSmsUser] = useState(original.attributes['xm.sms.user'] || '');
+  const [smsPassword, setSmsPassword] = useState('');
 
   const mapStyles = useMapStyles();
 
@@ -205,10 +233,18 @@ const IntegrationsPage = () => {
     style.available || (style.attribute && Boolean(attributes[style.attribute]));
 
   const handleSave = useCatch(async () => {
+    const payload = { ...item, attributes: { ...item.attributes } };
+    if (payload.attributes['xm.sms.provider'] === 'smsgate' && smsUser) {
+      payload.attributes['xm.sms.user'] = smsUser;
+      if (smsPassword) {
+        payload.attributes['xm.sms.authorization'] =
+          `Basic ${window.btoa(String.fromCharCode(...new TextEncoder().encode(`${smsUser}:${smsPassword}`)))}`;
+      }
+    }
     const response = await fetchOrThrow('api/server', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(item),
+      body: JSON.stringify(payload),
     });
     dispatch(sessionActions.updateServer(await response.json()));
     setSaved(true);
@@ -322,6 +358,101 @@ const IntegrationsPage = () => {
               helperText="https://example.com/tiles/{z}/{x}/{y}.png"
               value={item.mapUrl || ''}
               onChange={(e) => setItem({ ...item, mapUrl: e.target.value })}
+            />
+          </CardContent>
+        </Card>
+
+        <Card variant="outlined">
+          <CardHeader
+            className={classes.header}
+            avatar={<SmsIcon />}
+            title={t('xmSmsGateway')}
+            subheader={t('xmSmsGatewayHelp')}
+          />
+          <CardContent className={classes.grid}>
+            <FormControl>
+              <InputLabel>{t('xmSmsProvider')}</InputLabel>
+              <Select
+                label={t('xmSmsProvider')}
+                value={attributes['xm.sms.provider'] || ''}
+                onChange={(e) => {
+                  const preset = smsPresets.find((it) => it.id === e.target.value);
+                  const updated = { ...attributes, 'xm.sms.provider': preset.id };
+                  if (preset.url) updated['xm.sms.url'] = preset.url;
+                  if (preset.template) updated['xm.sms.template'] = preset.template;
+                  setItem({ ...item, attributes: updated });
+                }}
+              >
+                {smsPresets.map((preset) => (
+                  <MenuItem key={preset.id} value={preset.id}>
+                    {preset.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              label="API URL"
+              value={attributes['xm.sms.url'] || ''}
+              onChange={(e) => setAttribute('xm.sms.url', e.target.value.trim())}
+            />
+            {attributes['xm.sms.provider'] === 'smsgate' ? (
+              <>
+                <TextField
+                  label={t('xmUsername')}
+                  value={smsUser}
+                  onChange={(e) => setSmsUser(e.target.value)}
+                />
+                <PasswordField
+                  label={t('userPassword')}
+                  value={smsPassword}
+                  placeholder={attributes['xm.sms.authorization'] ? '••••••••' : ''}
+                  onChange={(e) => setSmsPassword(e.target.value)}
+                />
+              </>
+            ) : (
+              <PasswordField
+                label="Authorization header value"
+                value={attributes['xm.sms.authorization'] || ''}
+                onChange={(e) => setAttribute('xm.sms.authorization', e.target.value)}
+              />
+            )}
+            <TextField
+              label="Request body"
+              multiline
+              minRows={2}
+              value={attributes['xm.sms.template'] || ''}
+              helperText="{phone} {message}"
+              onChange={(e) => setAttribute('xm.sms.template', e.target.value)}
+              sx={{ gridColumn: '1 / -1' }}
+            />
+            {smsPresets.find((it) => it.id === attributes['xm.sms.provider'])?.help && (
+              <Alert severity="info" sx={{ gridColumn: '1 / -1' }}>
+                {smsPresets.find((it) => it.id === attributes['xm.sms.provider']).help}
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card variant="outlined">
+          <CardHeader
+            className={classes.header}
+            avatar={<RouterIcon />}
+            title={t('xmTrackerSetup')}
+          />
+          <CardContent className={classes.grid}>
+            <TextField
+              label={t('xmDeviceHost')}
+              placeholder={window.location.hostname}
+              helperText={t('xmDeviceHostHelp')}
+              value={attributes['xm.deviceHost'] || ''}
+              onChange={(e) => setAttribute('xm.deviceHost', e.target.value.trim())}
+            />
+            <TextField
+              label={t('xmServerCommandOverride')}
+              placeholder="SERVER,1,{host},{port},0#"
+              helperText={t('xmServerCommandHelp')}
+              value={attributes['xm.serverCommand'] || ''}
+              onChange={(e) => setAttribute('xm.serverCommand', e.target.value)}
             />
           </CardContent>
         </Card>

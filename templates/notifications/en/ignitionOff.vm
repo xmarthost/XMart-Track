@@ -1,5 +1,5 @@
 #set($subject = "$esc.html($device.name): ignition OFF")
-#set($digest = "$device.name ignition OFF at $dateTool.format('yyyy-MM-dd HH:mm:ss', $event.eventTime, $locale, $timezone)")
+#set($digest = "$device.name: Acc Off Alarm :DateTime: $dateTool.format('yyyy-MM-dd HH:mm:ss', $event.eventTime, $locale, $timezone)#if($mapLink) ,$mapLink#end")
 <!DOCTYPE html>
 <html>
 <body>

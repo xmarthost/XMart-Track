@@ -196,7 +196,7 @@ const ReplayPage = () => {
               <BackIcon />
             </IconButton>
             <Typography variant="h6" className={classes.title}>
-              {t('reportReplay')}
+              {t('xmPlayback')}
             </Typography>
             {loaded && (
               <>

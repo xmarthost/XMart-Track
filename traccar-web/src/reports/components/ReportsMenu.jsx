@@ -3,7 +3,6 @@ import StarIcon from '@mui/icons-material/Star';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import PauseCircleFilledIcon from '@mui/icons-material/PauseCircleFilled';
 import PlayCircleFilledIcon from '@mui/icons-material/PlayCircleFilled';
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import PlaceIcon from '@mui/icons-material/Place';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -12,6 +11,8 @@ import RouteIcon from '@mui/icons-material/Route';
 import EventRepeatIcon from '@mui/icons-material/EventRepeat';
 import NotesIcon from '@mui/icons-material/Notes';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from '../../common/components/LocalizationProvider';
 import { useAdministrator, useRestriction } from '../../common/util/permissions';
@@ -48,6 +49,18 @@ const ReportsMenu = () => {
   return (
     <>
       <List>
+        <MenuItem
+          title={t('xmFleetOverview')}
+          link="/reports/dashboard"
+          icon={<DashboardIcon />}
+          selected={location.pathname === '/reports/dashboard'}
+        />
+        <MenuItem
+          title={t('xmAlerts')}
+          link="/events"
+          icon={<NotificationsActiveIcon />}
+          selected={location.pathname === '/events'}
+        />
         <MenuItem
           title={t('reportCombined')}
           link={buildLink('/reports/combined')}

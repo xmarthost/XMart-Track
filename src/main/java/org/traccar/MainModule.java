@@ -101,6 +101,7 @@ import org.traccar.session.cache.CacheManager;
 import org.traccar.sms.HttpSmsClient;
 import org.traccar.sms.SmsManager;
 import org.traccar.sms.SnsSmsClient;
+import org.traccar.sms.XmartSmsManager;
 import org.traccar.speedlimit.OverpassSpeedLimitProvider;
 import org.traccar.speedlimit.SpeedLimitProvider;
 import org.traccar.storage.DatabaseStorage;
@@ -176,13 +177,14 @@ public class MainModule extends AbstractModule {
 
     @Singleton
     @Provides
-    public static SmsManager provideSmsManager(Config config, Client client) {
+    public static SmsManager provideSmsManager(Config config, Client client, CacheManager cacheManager) {
+        SmsManager fallback = null;
         if (config.hasKey(Keys.SMS_HTTP_URL)) {
-            return new HttpSmsClient(config, client);
+            fallback = new HttpSmsClient(config, client);
         } else if (config.hasKey(Keys.SMS_AWS_REGION)) {
-            return new SnsSmsClient(config);
+            fallback = new SnsSmsClient(config);
         }
-        return null;
+        return new XmartSmsManager(client, cacheManager, fallback);
     }
 
     @Singleton

@@ -16,6 +16,7 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import CampaignIcon from '@mui/icons-material/Campaign';
 import CalculateIcon from '@mui/icons-material/Calculate';
 import KeyIcon from '@mui/icons-material/VpnKey';
+import SmsIcon from '@mui/icons-material/Sms';
 import { useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useTranslation } from '../../common/components/LocalizationProvider';
@@ -52,6 +53,12 @@ const SettingsMenu = () => {
               link="/settings/notifications"
               icon={<NotificationsIcon />}
               selected={location.pathname.startsWith('/settings/notification')}
+            />
+            <MenuItem
+              title={t('xmSmsAlerts')}
+              link="/settings/sms-alerts"
+              icon={<SmsIcon />}
+              selected={location.pathname === '/settings/sms-alerts'}
             />
             <MenuItem
               title={t('settingsUser')}

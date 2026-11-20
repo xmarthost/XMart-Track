@@ -32,6 +32,7 @@ import org.traccar.session.cache.CacheManager;
 
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Locale;
 
 @Singleton
 public class NotificationFormatter {
@@ -62,6 +63,10 @@ public class NotificationFormatter {
         velocityContext.put("translations", localeManager.getBundle(UserUtil.getLanguage(server, user)));
         if (position != null) {
             velocityContext.put("position", position);
+            velocityContext.put("mapLink", String.format(Locale.US,
+                    "http://maps.google.com/maps?q=%s%.6f,%s%.6f",
+                    position.getLatitude() >= 0 ? "N" : "S", Math.abs(position.getLatitude()),
+                    position.getLongitude() >= 0 ? "E" : "W", Math.abs(position.getLongitude())));
             velocityContext.put("speedUnit", UserUtil.getSpeedUnit(server, user));
             velocityContext.put("distanceUnit", UserUtil.getDistanceUnit(server, user));
             velocityContext.put("volumeUnit", UserUtil.getVolumeUnit(server, user));

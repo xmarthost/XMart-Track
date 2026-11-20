@@ -45,6 +45,7 @@ import fetchOrThrow from '../../common/util/fetchOrThrow';
 import { speedFromKnots, speedUnitString } from '../../common/util/converter';
 import { getDeviceState, sinceNow, stateColors } from '../../common/util/xmartStatus';
 import EngineControlDialog from '../../common/components/xmart/EngineControlDialog';
+import QuickAddDeviceDialog from '../../common/components/xmart/QuickAddDeviceDialog';
 
 const HEADER_ROW = 40;
 const DEVICE_ROW = 52;
@@ -296,6 +297,7 @@ const MonitorPanel = ({
   const [menu, setMenu] = useState(null);
   const [optionsAnchor, setOptionsAnchor] = useState(null);
   const [engine, setEngine] = useState(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
   useEffect(() => {
@@ -396,7 +398,8 @@ const MonitorPanel = ({
           <span>
             <IconButton
               color="primary"
-              onClick={() => navigate('/settings/device')}
+              data-testid="xm-add-device"
+              onClick={() => setAddOpen(true)}
               disabled={deviceReadonly}
             >
               <AddCircleOutlineIcon />
@@ -562,6 +565,7 @@ const MonitorPanel = ({
         )}
       </Menu>
       <Box>
+        <QuickAddDeviceDialog open={addOpen} onClose={() => setAddOpen(false)} />
         <EngineControlDialog
           deviceId={engine?.deviceId}
           action={engine?.action}

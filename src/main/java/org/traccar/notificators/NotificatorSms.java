@@ -26,6 +26,8 @@ import org.traccar.sms.SmsManager;
 
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
@@ -44,11 +46,22 @@ public class NotificatorSms extends Notificator {
 
     @Override
     public CompletableFuture<Void> sendAsync(User user, NotificationMessage message, Event event, Position position) {
-        if (user.getPhone() == null) {
+        if (user.getPhone() == null || user.getPhone().isBlank()) {
             return CompletableFuture.completedFuture(null);
         }
-        statisticsManager.registerSms();
-        return smsManager.sendMessage(user.getPhone(), message.digest(), false);
+        // XMart: the phone field may hold several numbers separated by comma, semicolon or space
+        List<String> phones = Arrays.stream(user.getPhone().split("[,;\\s]+"))
+                .map(String::trim)
+                .filter(phone -> !phone.isEmpty())
+                .distinct()
+                .toList();
+        CompletableFuture<?>[] futures = phones.stream()
+                .map(phone -> {
+                    statisticsManager.registerSms();
+                    return smsManager.sendMessage(phone, message.digest(), false);
+                })
+                .toArray(CompletableFuture[]::new);
+        return CompletableFuture.allOf(futures);
     }
 
 }

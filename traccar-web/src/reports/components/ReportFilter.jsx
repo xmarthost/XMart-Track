@@ -337,20 +337,20 @@ const ReportFilter = ({ children, onShow, onExport, onSchedule, deviceType, load
         {Object.keys(options).length === 1 ? (
           <Button
             fullWidth
-            variant="outlined"
-            color="secondary"
+            variant="contained"
+            color="primary"
             disabled={disabled}
             onClick={onClick}
           >
-            <Typography variant="button" noWrap>
+            <Typography variant="button" noWrap sx={{ textTransform: 'none', fontWeight: 600 }}>
               {t(loading ? 'sharedLoading' : 'reportShow')}
             </Typography>
           </Button>
         ) : (
           <SplitButton
             fullWidth
-            variant="outlined"
-            color="secondary"
+            variant="contained"
+            color="primary"
             disabled={disabled}
             onClick={onClick}
             selected={selectedOption}

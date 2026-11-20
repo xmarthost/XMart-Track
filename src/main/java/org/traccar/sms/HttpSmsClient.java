@@ -59,13 +59,29 @@ public class HttpSmsClient implements SmsManager {
             }
         }
         template = config.getString(Keys.SMS_HTTP_TEMPLATE).trim();
-        if (template.charAt(0) == '<') {
-            mediaType = MediaType.APPLICATION_XML_TYPE;
-        } else if (template.charAt(0) == '{' || template.charAt(0) == '[') {
-            mediaType = MediaType.APPLICATION_JSON_TYPE;
-        } else {
-            mediaType = MediaType.APPLICATION_FORM_URLENCODED_TYPE;
+        mediaType = detectMediaType(template);
+    }
+
+    public HttpSmsClient(
+            Client client, String url, String authorizationHeader, String authorization, String template) {
+        this.client = client;
+        this.url = url;
+        this.authorizationHeader = authorizationHeader != null ? authorizationHeader : "Authorization";
+        this.authorization = authorization;
+        this.template = template.trim();
+        this.mediaType = detectMediaType(this.template);
+    }
+
+    private static MediaType detectMediaType(String template) {
+        if (template.isEmpty()) {
+            return MediaType.APPLICATION_FORM_URLENCODED_TYPE;
         }
+        if (template.charAt(0) == '<') {
+            return MediaType.APPLICATION_XML_TYPE;
+        } else if (template.charAt(0) == '{' || template.charAt(0) == '[') {
+            return MediaType.APPLICATION_JSON_TYPE;
+        }
+        return MediaType.APPLICATION_FORM_URLENCODED_TYPE;
     }
 
     private String prepareValue(String value) throws UnsupportedEncodingException {

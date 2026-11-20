@@ -9,6 +9,7 @@ import InventoryIcon from '@mui/icons-material/Inventory2';
 import PeopleIcon from '@mui/icons-material/People';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import SmsIcon from '@mui/icons-material/Sms';
 import { useTranslation } from '../LocalizationProvider';
 import { useAdministrator, useManager, useRestriction } from '../../util/permissions';
 
@@ -67,7 +68,6 @@ const NavRail = () => {
   const manager = useManager();
   const readonly = useRestriction('readonly');
   const disableReports = useRestriction('disableReports');
-  const selectedDeviceId = useSelector((state) => state.devices.selectedId);
   const socket = useSelector((state) => state.session.socket);
   const eventCount = useSelector((state) => state.events.items.length);
 
@@ -90,9 +90,7 @@ const NavRail = () => {
       key: 'statistics',
       label: t('xmStatistics'),
       icon: <BarChartIcon />,
-      path: selectedDeviceId
-        ? `/reports/combined?deviceId=${selectedDeviceId}`
-        : '/reports/combined',
+      path: '/reports/dashboard',
       active: pathname.startsWith('/reports'),
     },
     !readonly && {
@@ -111,6 +109,7 @@ const NavRail = () => {
         pathname.startsWith('/settings') &&
         !pathname.startsWith('/settings/user') &&
         !pathname.startsWith('/settings/notification') &&
+        !pathname.startsWith('/settings/sms-alerts') &&
         !pathname.startsWith('/settings/integrations') &&
         !pathname.startsWith('/settings/server'),
     },
@@ -129,8 +128,17 @@ const NavRail = () => {
           <NotificationsActiveIcon />
         </Badge>
       ),
-      path: '/settings/notifications',
-      active: pathname.startsWith('/settings/notification'),
+      path: '/events',
+      active: pathname.startsWith('/events') || pathname.startsWith('/event/'),
+    },
+    !readonly && {
+      key: 'sms',
+      label: t('xmSmsAlerts'),
+      icon: <SmsIcon />,
+      path: '/settings/sms-alerts',
+      active:
+        pathname.startsWith('/settings/sms-alerts') ||
+        pathname.startsWith('/settings/notification'),
     },
     admin && {
       key: 'admin',
