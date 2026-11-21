@@ -36,6 +36,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.traccar.config.Config;
 import org.traccar.config.Keys;
+import org.traccar.helper.model.UserUtil;
+import org.traccar.model.Device;
 import org.traccar.model.Event;
 import org.traccar.model.ObjectOperation;
 import org.traccar.model.Position;
@@ -54,11 +56,13 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
@@ -132,9 +136,22 @@ public class NotificatorFirebase extends Notificator {
         }
 
         if (!"data".equals(mode)) {
+            String title = message.subject();
+            String body = message.digest();
+            Device device = event != null ? cacheManager.getObject(Device.class, event.getDeviceId()) : null;
+            if (device != null) {
+                // short, readable phone notification: vehicle, what happened, time, place
+                SimpleDateFormat time = new SimpleDateFormat("HH:mm", Locale.US);
+                time.setTimeZone(UserUtil.getTimezone(cacheManager.getServer(), user));
+                title = "🚘 " + device.getName();
+                body = NotificatorXmartWhatsapp.titleFor(event) + " • " + time.format(event.getEventTime());
+                if (position != null && position.getAddress() != null && !position.getAddress().isBlank()) {
+                    body += "\n📍 " + position.getAddress();
+                }
+            }
             messageBuilder.setNotification(com.google.firebase.messaging.Notification.builder()
-                    .setTitle(message.subject())
-                    .setBody(message.digest())
+                    .setTitle(title)
+                    .setBody(body)
                     .build());
         }
 

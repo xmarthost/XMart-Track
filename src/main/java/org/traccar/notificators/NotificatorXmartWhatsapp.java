@@ -95,6 +95,11 @@ public class NotificatorXmartWhatsapp extends Notificator {
                 .toList();
     }
 
+    static String titleFor(Event event) {
+        String title = titleFor(event);
+        return title;
+    }
+
     String buildMessage(Server server, User user, Event event, Position position) {
         Device device = cacheManager.getObject(Device.class, event.getDeviceId());
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
