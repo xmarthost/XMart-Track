@@ -1242,7 +1242,10 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
 
             if (subType == 0x00) {
 
-                position.set(Position.PREFIX_ADC + 1, buf.readUnsignedShort() / 100.0);
+                // Concox/WanWay: external power (vehicle battery) voltage in 0.01 V
+                double voltage = buf.readUnsignedShort() / 100.0;
+                position.set(Position.PREFIX_ADC + 1, voltage);
+                position.set(Position.KEY_POWER, voltage);
                 return position;
 
             } else if (subType == 0x04) {

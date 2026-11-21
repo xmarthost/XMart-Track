@@ -172,7 +172,7 @@ set_config notificator.types 'web,sms,command,xmwhatsapp'
 set_config geocoder.format '%f'
 set_config geocoder.cacheSize '20000'
 set_config processing.copyAttributes.enable 'true'
-set_config processing.copyAttributes 'power,battery,batteryLevel,ignition,sat,rssi,charge,blocked,odometer'
+set_config processing.copyAttributes 'power,adc1,battery,batteryLevel,ignition,sat,rssi,charge,blocked,odometer'
 # GT06/WanWay trackers send UTC times; after a GMT,E,5,0# command they still report UTC but announce
 # +5 h at login, which shifted every position/event 5 h into the past (and blocked alerts as "old").
 set_config decoder.timezone 'UTC'
