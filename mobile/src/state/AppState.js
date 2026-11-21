@@ -4,8 +4,7 @@ import { logInfo, logWarn } from './log';
 import { handleNotificationTaps, promptSetupOnce, registerPush } from './push';
 
 const AppContext = createContext(null);
-const TRAIL_LENGTH = 3000;
-const toPoint = (p) => ({ latitude: p.latitude, longitude: p.longitude, time: p.fixTime });
+const TRAIL_LENGTH = 300;
 
 export function AppProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -31,7 +30,9 @@ export function AppProvider({ children }) {
         const trail = next[p.deviceId] || [];
         const last = trail[trail.length - 1];
         if (!last || last.latitude !== p.latitude || last.longitude !== p.longitude) {
-          next[p.deviceId] = [...trail, toPoint(p)].slice(-TRAIL_LENGTH);
+          next[p.deviceId] = [...trail, { latitude: p.latitude, longitude: p.longitude }].slice(
+            -TRAIL_LENGTH,
+          );
         }
       });
       return next;
@@ -114,52 +115,6 @@ export function AppProvider({ children }) {
     return handleNotificationTaps(setSelectedId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
-
-  // The green line starts where the current trip started (last ACC ON), even if the app was
-  // closed then: the route since that moment is loaded from the server.
-  const loadTrail = useCallback(async (deviceId) => {
-    try {
-      const now = new Date();
-      const from = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
-      const acc = await api(
-        `api/reports/events?deviceId=${deviceId}&type=ignitionOn&type=ignitionOff&from=${from}&to=${now.toISOString()}`,
-      );
-      const last = acc.sort((a, b) => new Date(b.eventTime) - new Date(a.eventTime))[0];
-      if (!last || last.type !== 'ignitionOn') return;
-      const route = await api(
-        `api/reports/route?deviceId=${deviceId}&from=${new Date(last.eventTime).toISOString()}&to=${now.toISOString()}`,
-        { timeout: 20000 },
-      );
-      if (!route.length) return;
-      const step = Math.ceil(route.length / TRAIL_LENGTH);
-      const points = route.filter((_, index) => index % step === 0 || index === route.length - 1).map(toPoint);
-      const end = new Date(route[route.length - 1].fixTime).getTime();
-      setTrails((previous) => {
-        // keep live points that arrived after the loaded route
-        const live = (previous[deviceId] || []).filter((p) => p.time && new Date(p.time).getTime() > end);
-        return { ...previous, [deviceId]: [...points, ...live].slice(-TRAIL_LENGTH) };
-      });
-      logInfo('trail', `loaded ${points.length} points since ACC ON`);
-    } catch (error) {
-      logWarn('trail', 'could not load trip route', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (user && selectedId) loadTrail(selectedId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, selectedId, loadTrail]);
-
-  // a new trip starts a new line
-  useEffect(() => {
-    const start = events[0];
-    if (start?.type !== 'ignitionOn') return;
-    setTrails((previous) => {
-      const current = positions[start.deviceId];
-      return { ...previous, [start.deviceId]: current ? [toPoint(current)] : [] };
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [events]);
 
   const value = {
     user,

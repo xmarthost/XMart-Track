@@ -137,9 +137,7 @@ public class NotificatorFirebase extends Notificator {
 
         if (!"data".equals(mode)) {
             String title = message.subject();
-            // phone notifications never carry map links (the app opens the vehicle on tap)
-            String body = message.digest() != null
-                    ? message.digest().replaceAll(",?\\s*https?://\\S+", "").trim() : null;
+            String body = message.digest();
             Device device = event != null ? cacheManager.getObject(Device.class, event.getDeviceId()) : null;
             if (device != null) {
                 // short, readable phone notification: vehicle, what happened, time, place
