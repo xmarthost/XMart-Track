@@ -245,7 +245,8 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
           value: attributes.driverUniqueId ? (
             <DriverValue driverUniqueId={attributes.driverUniqueId} />
           ) : (
-            device?.contact || '--'
+            // no driver card: show the vehicle name (it follows the name edited above)
+            device?.contact || device?.name || '--'
           ),
         },
         {

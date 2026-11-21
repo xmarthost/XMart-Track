@@ -26,7 +26,7 @@ SSL=1
 APP_DIR="/opt/xmart-track"
 SRC_DIR="$APP_DIR/source"
 CRED_FILE="/root/xmart-track-credentials.txt"
-NODE_VERSION="22.12.0"
+NODE_VERSION="22.13.1" # fallback; the newest Node 22 release is used when found
 TIMEZONE="Asia/Karachi"
 
 while [ $# -gt 0 ]; do
@@ -65,9 +65,16 @@ apt-get install -y --no-install-recommends \
   ca-certificates curl git unzip xz-utils openssl python3 ufw nginx mariadb-server \
   openjdk-21-jdk-headless certbot python3-certbot-nginx
 
-if ! command -v node >/dev/null || [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 20 ]; then
-  log "Installing Node.js $NODE_VERSION"
+# the web build tools need Node 22.13 or newer; install the newest Node 22 release when older
+node_ok() {
+  command -v node >/dev/null && node -e 'const [a, b] = process.versions.node.split(".").map(Number); process.exit(a > 22 || (a === 22 && b >= 13) ? 0 : 1)'
+}
+if ! node_ok; then
   ARCH="$(uname -m)"; case "$ARCH" in x86_64) NARCH=x64 ;; aarch64) NARCH=arm64 ;; *) die "Unsupported CPU $ARCH" ;; esac
+  LATEST="$(curl -fsSL https://nodejs.org/dist/latest-v22.x/SHASUMS256.txt 2>/dev/null \
+    | grep -o "node-v22\.[0-9.]*-linux-$NARCH\.tar\.xz" | head -1 | sed -E 's/node-v([0-9.]+)-.*/\1/')"
+  [ -n "$LATEST" ] && NODE_VERSION="$LATEST"
+  log "Installing Node.js $NODE_VERSION"
   curl -fsSL "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-$NARCH.tar.xz" -o /tmp/node.tar.xz
   rm -rf /opt/node && mkdir -p /opt/node && tar -xJf /tmp/node.tar.xz -C /opt/node --strip-components=1
   ln -sf /opt/node/bin/node /usr/local/bin/node
@@ -95,7 +102,7 @@ log "Building server (this takes a few minutes the first time)"
 (cd "$SRC_DIR" && chmod +x gradlew && ./gradlew assemble --no-daemon -q)
 
 log "Building web interface"
-(cd "$SRC_DIR/traccar-web" && npm ci --no-audit --no-fund && npx vite build)
+(cd "$SRC_DIR/traccar-web" && npm ci --no-audit --no-fund --loglevel=error && npx vite build)
 
 log "Installing files to $APP_DIR"
 mkdir -p "$APP_DIR"/{conf,data,logs,media}
