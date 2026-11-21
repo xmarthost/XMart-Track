@@ -105,6 +105,8 @@ const TrackMap = forwardRef(function TrackMap(
             type="symbol"
             layout={{
               'icon-image': ['get', 'icon'],
+              // smaller cars when zoomed out over a city or country
+              'icon-size': ['interpolate', ['linear'], ['zoom'], 4, 0.45, 10, 0.7, 14, 0.9, 16, 1],
               'icon-rotate': ['get', 'course'],
               'icon-rotation-alignment': 'map',
               'icon-allow-overlap': true,

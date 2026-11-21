@@ -61,8 +61,12 @@ export default function Monitor() {
   const sheetPad = selected ? sheetHeight || Math.round(areaHeight * 0.5) : 0;
   const padding = { top: 0, right: 0, left: 0, bottom: sheetPad };
 
+  const zoomUntilRef = useRef(0);
+
   const centerOn = (position) => {
     if (!position || !cameraRef.current) return;
+    // a re-center for the sheet height may follow right away: it must keep this zoom
+    zoomUntilRef.current = Date.now() + 1500;
     cameraRef.current.easeTo({
       center: [position.longitude, position.latitude],
       zoom: STREET_ZOOM,
@@ -95,8 +99,9 @@ export default function Monitor() {
     if (view !== 'map' || !selectedPosition || !cameraRef.current || !sheetHeight) return;
     cameraRef.current.easeTo({
       center: [selectedPosition.longitude, selectedPosition.latitude],
+      ...(Date.now() < zoomUntilRef.current ? { zoom: STREET_ZOOM } : {}),
       padding,
-      duration: 300,
+      duration: 400,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sheetHeight]);
@@ -107,6 +112,8 @@ export default function Monitor() {
   }, [selectedId]);
 
   const openVehicle = (id) => {
+    // same vehicle tapped again while the map is showing: nothing changes state, so zoom here
+    if (id === selectedId && view === 'map') centerOn(positions[id]);
     if (id !== selectedId) setSheetHeight(0);
     setSelectedId(id);
     lastCenteredRef.current = null;
