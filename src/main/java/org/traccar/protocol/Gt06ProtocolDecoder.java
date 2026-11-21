@@ -985,6 +985,9 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
                             position.set(Position.KEY_BATTERY_LEVEL, battery * 100 / 6);
                         } else if (battery <= 100) {
                             position.set(Position.KEY_BATTERY_LEVEL, battery);
+                        } else if (type == MSG_STATUS) {
+                            // WanWay G19S and similar: vehicle voltage in 0.1 V (e.g. 127 = 12.7 V)
+                            position.set(Position.KEY_POWER, battery / 10.0);
                         }
                     }
                     position.set(Position.KEY_RSSI, buf.readUnsignedByte());
