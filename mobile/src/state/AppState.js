@@ -49,12 +49,19 @@ export function AppProvider({ children }) {
     if (!user) return undefined;
     let closed = false;
     let retry;
+    let attempts = 0;
     const connect = () => {
       const socket = new WebSocket(socketUrl());
       socketRef.current = socket;
+      let keepAlive;
       socket.onopen = () => {
         logInfo('socket', 'connected');
         setConnected(true);
+        attempts = 0;
+        // mobile networks drop idle connections; the server ignores this small message
+        keepAlive = setInterval(() => {
+          if (socket.readyState === 1) socket.send('{}');
+        }, 20000);
       };
       socket.onmessage = (message) => {
         const data = JSON.parse(message.data);
@@ -72,8 +79,10 @@ export function AppProvider({ children }) {
       };
       socket.onclose = (event) => {
         logWarn('socket', `closed code ${event?.code ?? '?'} ${event?.reason || ''}`);
+        clearInterval(keepAlive);
         setConnected(false);
-        if (!closed) retry = setTimeout(connect, 5000);
+        attempts += 1;
+        if (!closed) retry = setTimeout(connect, Math.min(1000 * attempts, 10000));
       };
       socket.onerror = (event) => {
         logWarn('socket', 'error', event?.message || '');

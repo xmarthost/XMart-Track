@@ -1,17 +1,40 @@
-// Raster map styles drawn by MapLibre (same tiles as the web app), so the map does not depend
-// on the Google Maps Android SDK. Google layers are tried first; free layers are the fallback.
+// Raster map styles drawn by MapLibre, so the map does not depend on the Google Maps Android SDK.
+// Google layers use the official Map Tiles API with the app's key (`api`), then the public Google
+// tile servers (`tiles`), then a free layer as the last fallback.
+const CARTO_KEY = 'cb1_5dap_1_ff183c56a35ff4dd2f3a8c64';
 const google = (layer) =>
   [0, 1, 2, 3].map((n) => `https://mt${n}.google.com/vt/lyrs=${layer}&hl=en&gl=pk&x={x}&y={y}&z={z}&scale=2`);
 
 export const mapStyles = [
-  { id: 'googleRoad', label: 'Google Road', group: 'Google', tiles: google('m'), satellite: false },
-  { id: 'googleHybrid', label: 'Google Hybrid', group: 'Google', tiles: google('y'), satellite: true },
-  { id: 'googleSatellite', label: 'Google Satellite', group: 'Google', tiles: google('s'), satellite: true },
+  {
+    id: 'googleRoad',
+    label: 'Google Road',
+    group: 'Google',
+    tiles: google('m'),
+    api: { mapType: 'roadmap', scale: 'scaleFactor2x', highDpi: true },
+    satellite: false,
+  },
+  {
+    id: 'googleHybrid',
+    label: 'Google Hybrid',
+    group: 'Google',
+    tiles: google('y'),
+    api: { mapType: 'satellite', layerTypes: ['layerRoadmap'] },
+    satellite: true,
+  },
+  {
+    id: 'googleSatellite',
+    label: 'Google Satellite',
+    group: 'Google',
+    tiles: google('s'),
+    api: { mapType: 'satellite' },
+    satellite: true,
+  },
   {
     id: 'freeStreets',
     label: 'Free Streets (Carto)',
     group: 'Free',
-    tiles: ['a', 'b', 'c', 'd'].map((s) => `https://${s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png`),
+    tiles: [`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${CARTO_KEY}`],
     attribution: '© OpenStreetMap © CARTO',
     satellite: false,
   },
@@ -40,23 +63,22 @@ export const FALLBACK_SATELLITE = 'freeSatellite';
 export const findStyle = (id) => mapStyles.find((s) => s.id === id) || mapStyles[0];
 export const isGoogle = (id) => findStyle(id).group === 'Google';
 
-// A single tile URL used to check that the provider is reachable.
-export const testTileUrl = (id) =>
-  findStyle(id)
-    .tiles[0].replace('{z}', '5')
-    .replace('{x}', '22')
-    .replace('{y}', '13');
+// A tile over Lahore, used to check that a tile URL template works.
+export const sampleTile = (template) =>
+  template.replace('{z}', '12').replace('{x}', '2894').replace('{y}', '1665');
 
 const cache = {};
-export function buildStyle(id) {
-  if (cache[id]) return cache[id];
+export function buildStyle(id, tiles) {
   const style = findStyle(id);
-  cache[id] = {
+  const urls = tiles || style.tiles;
+  const cacheKey = `${id}|${urls[0]}`;
+  if (cache[cacheKey]) return cache[cacheKey];
+  cache[cacheKey] = {
     version: 8,
     sources: {
       base: {
         type: 'raster',
-        tiles: style.tiles,
+        tiles: urls,
         tileSize: 256,
         maxzoom: 20,
         attribution: style.attribution || '© Google',
@@ -67,5 +89,5 @@ export function buildStyle(id) {
       { id: 'base', type: 'raster', source: 'base' },
     ],
   };
-  return cache[id];
+  return cache[cacheKey];
 }

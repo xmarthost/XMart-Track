@@ -40,6 +40,8 @@ async function lookupAddress(latitude, longitude) {
 
 function useAddress(position) {
   const [address, setAddress] = useState(position?.address);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => setAttempt(0), [position?.latitude, position?.longitude]);
   useEffect(() => {
     if (!position) return;
     if (position.address) {
@@ -52,17 +54,23 @@ function useAddress(position) {
       return;
     }
     let active = true;
+    let retry;
     lookupAddress(position.latitude, position.longitude)
       .then((text) => {
         if (!text) return;
         addressCache.set(key, text);
         if (active) setAddress(text);
       })
-      .catch((error) => logWarn('address', 'server geocode failed', error));
+      .catch((error) => {
+        logWarn('address', `lookup failed (try ${attempt + 1})`, error);
+        // usually a short network drop: try again a few times
+        if (active && attempt < 4) retry = setTimeout(() => setAttempt(attempt + 1), 10000);
+      });
     return () => {
       active = false;
+      clearTimeout(retry);
     };
-  }, [position?.latitude, position?.longitude, position?.address]);
+  }, [position?.latitude, position?.longitude, position?.address, attempt]);
   return address;
 }
 

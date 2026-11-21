@@ -6,7 +6,7 @@ import { api, getBase } from '../api/server';
 import { useApp } from '../state/AppState';
 import { colors } from '../state/status';
 import { clearLogs, formatLogTime, getLogs, logInfo, logsAsText, subscribeLogs } from '../state/log';
-import { checkTiles, useMapState } from '../map/mapState';
+import { checkGoogleApi, checkTiles, useMapState } from '../map/mapState';
 import { findStyle } from '../map/mapStyles';
 
 const googleKey = Constants.expoConfig?.extra?.googleKey;
@@ -24,7 +24,8 @@ const timed = async (task) => {
 
 const tests = [
   ['Server connection', () => timed(async () => `version ${(await api('api/server')).version || '?'}`)],
-  ['Google map tiles', () => checkTiles('googleRoad')],
+  ['Google Map Tiles API (your key)', () => checkGoogleApi('googleRoad')],
+  ['Google public tiles', () => checkTiles('googleRoad')],
   ['Google satellite tiles', () => checkTiles('googleHybrid')],
   ['Free map tiles (Carto)', () => checkTiles('freeStreets')],
   ['Free satellite tiles (Esri)', () => checkTiles('freeSatellite')],
@@ -49,7 +50,7 @@ const tests = [
 
 export default function Diagnostics() {
   const { user, connected, devices, positions } = useApp();
-  const { chosen, active, notice } = useMapState();
+  const { chosen, active, source, notice } = useMapState();
   const logs = useSyncExternalStore(subscribeLogs, getLogs);
   const [results, setResults] = useState({});
   const [running, setRunning] = useState(false);
@@ -73,6 +74,7 @@ export default function Diagnostics() {
     ['Devices / positions', `${Object.keys(devices).length} / ${Object.keys(positions).length}`],
     ['Map chosen', findStyle(chosen).label],
     ['Map showing', findStyle(active).label + (notice ? ' (fallback)' : '')],
+    ['Map tiles from', source || '-'],
     ['Google key', googleKey ? `…${googleKey.slice(-6)}` : 'missing'],
   ];
 
