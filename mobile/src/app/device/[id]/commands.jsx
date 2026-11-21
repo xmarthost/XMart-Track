@@ -37,6 +37,11 @@ const groups = [
     { label: 'ACC SMS alert OFF', data: 'ACCALM,OFF#' },
     { label: 'Set time zone (GMT+5)', data: 'GMT,E,5,0#' },
   ]],
+  ['Map link in tracker SMS', [
+    { label: 'Get Google map link (URL#)', data: 'URL#' },
+    { label: 'Show link / server settings (GPRSSET#)', data: 'GPRSSET#' },
+    { label: 'Firmware version (VERSION#)', data: 'VERSION#' },
+  ]],
   ['Custom', [{ label: 'Custom command', data: '{value}', fields: [{ key: 'value', label: 'Command text' }] }]],
 ];
 

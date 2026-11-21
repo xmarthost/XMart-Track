@@ -4,6 +4,7 @@ import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { useKeepAwake } from 'expo-keep-awake';
 import { AppProvider, useApp } from '../state/AppState';
 import { restoreSession } from '../api/server';
 import { colors } from '../state/status';
@@ -28,6 +29,8 @@ function Welcome() {
 }
 
 function Gate() {
+  // the screen stays on while the app is open (like tracking apps); it sleeps normally when closed
+  useKeepAwake();
   const { setUser } = useApp();
   const [ready, setReady] = useState(false);
 

@@ -58,11 +58,17 @@ export default function Playback() {
       });
   }, [deviceId, day]);
 
+  // playback steps through the vehicle's movements only: points where it stood still are skipped
+  const frames = useMemo(() => {
+    const moving = route.filter((p) => p.speed > 1.5 || p.attributes?.motion === true);
+    return moving.length > 1 ? moving : route;
+  }, [route]);
+
   useEffect(() => {
     if (!playing) return undefined;
     const timer = setInterval(() => {
       setIndex((current) => {
-        if (current >= route.length - 1) {
+        if (current >= frames.length - 1) {
           setPlaying(false);
           return current;
         }
@@ -70,9 +76,9 @@ export default function Playback() {
       });
     }, speeds[speed]);
     return () => clearInterval(timer);
-  }, [playing, speed, route.length]);
+  }, [playing, speed, frames.length]);
 
-  const current = route[index];
+  const current = frames[index];
   const totals = segments.reduce(
     (t, s) =>
       s.kind === 'trip'
@@ -80,7 +86,7 @@ export default function Playback() {
         : { ...t, parking: t.parking + s.duration },
     { driving: 0, distance: 0, max: 0, parking: 0 },
   );
-  const progress = route.length > 1 ? index / (route.length - 1) : 0;
+  const progress = frames.length > 1 ? index / (frames.length - 1) : 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -104,10 +110,10 @@ export default function Playback() {
           <Pressable
             style={styles.play}
             onPress={() => {
-              if (index >= route.length - 1) setIndex(0);
+              if (index >= frames.length - 1) setIndex(0);
               setPlaying(!playing);
             }}
-            disabled={route.length < 2}
+            disabled={frames.length < 2}
           >
             <MaterialIcons name={playing ? 'pause' : 'play-arrow'} size={28} color="#FFF" />
           </Pressable>
@@ -116,7 +122,7 @@ export default function Playback() {
             onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
             onPress={(e) => {
               const ratio = Math.min(Math.max(e.nativeEvent.locationX / (trackWidth || 1), 0), 1);
-              if (route.length > 1) setIndex(Math.round(ratio * (route.length - 1)));
+              if (frames.length > 1) setIndex(Math.round(ratio * (frames.length - 1)));
             }}
           >
             <View style={styles.trackBar}>
@@ -172,7 +178,7 @@ export default function Playback() {
             style={styles.segment}
             onPress={() => {
               const target = new Date(item.startTime).getTime();
-              const found = route.findIndex((p) => new Date(p.fixTime).getTime() >= target);
+              const found = frames.findIndex((p) => new Date(p.fixTime).getTime() >= target);
               setIndex(found >= 0 ? found : 0);
             }}
           >

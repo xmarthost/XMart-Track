@@ -43,6 +43,32 @@ const tests = [
       }),
   ],
   [
+    'Alert rules (WhatsApp / SMS)',
+    () =>
+      timed(async () => {
+        const rules = await api('api/notifications');
+        const list = rules
+          .filter((n) => /sms|xmwhatsapp/.test(n.notificators || ''))
+          .map((n) => `${n.type}: ${n.notificators}${n.always ? '' : ' (not all devices)'}`);
+        if (!list.length) throw new Error('no WhatsApp/SMS alert rules: save them in SMS & WhatsApp alerts');
+        return list.join(' | ');
+      }),
+  ],
+  [
+    'ACC events last 24 h (server)',
+    () =>
+      timed(async () => {
+        const now = new Date();
+        const from = new Date(now.getTime() - 864e5).toISOString();
+        const devices = await api('api/devices');
+        const ids = devices.map((d) => `deviceId=${d.id}`).join('&');
+        const events = await api(`api/reports/events?${ids}&type=ignitionOn&type=ignitionOff&from=${from}&to=${now.toISOString()}`);
+        if (!events.length) throw new Error('server saw no ACC ON/OFF in 24 h: tracker data did not reach the server');
+        const last = events.sort((a, b) => new Date(b.eventTime) - new Date(a.eventTime))[0];
+        return `${events.length} events, last ${last.type} at ${new Date(last.eventTime).toLocaleString()}`;
+      }),
+  ],
+  [
     'Server address lookup',
     () => timed(async () => String(await api('api/server/geocode?latitude=31.5204&longitude=74.3587', { raw: true })).slice(0, 120)),
   ],
