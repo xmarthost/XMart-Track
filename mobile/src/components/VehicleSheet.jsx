@@ -20,24 +20,34 @@ const compass = (deg) => ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round
 const addressCache = new Map();
 const googleKey = Constants.expoConfig?.extra?.googleKey;
 
-// Full street address from Google (skips plus-code results), falling back to the server geocoder.
+// Address from the server geocoder first (the same full local-language address as the website),
+// then Google as a backup. Every request has a time limit: on some phones a request to Google
+// never answers, which used to block the server lookup.
 async function lookupAddress(latitude, longitude) {
-  if (googleKey) {
-    try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&language=en&key=${googleKey}`,
-      );
-      const json = await response.json();
-      const result = (json.results || []).find((r) => !(r.types || []).includes('plus_code'));
-      if (result?.formatted_address) {
-        return result.formatted_address;
-      }
-      logWarn('address', `Google geocode ${json.status} ${json.error_message || ''}`);
-    } catch (error) {
-      logWarn('address', 'Google geocode error', error);
-    }
+  try {
+    const text = await api(`api/server/geocode?latitude=${latitude}&longitude=${longitude}`, { timeout: 12000 });
+    if (text && String(text).trim()) return String(text).trim();
+    logWarn('address', 'server geocode returned no address');
+  } catch (error) {
+    logWarn('address', 'server geocode failed', error);
   }
-  return api(`api/server/geocode?latitude=${latitude}&longitude=${longitude}`);
+  if (!googleKey) throw new Error('no address');
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&language=en&key=${googleKey}`,
+      { signal: controller.signal },
+    );
+    const json = await response.json();
+    const result = (json.results || []).find((r) => !(r.types || []).includes('plus_code'));
+    if (result?.formatted_address) return result.formatted_address;
+    throw new Error(`Google geocode ${json.status} ${json.error_message || ''}`);
+  } catch (error) {
+    throw controller.signal.aborted ? new Error('Google geocode timeout') : error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function useAddress(position) {

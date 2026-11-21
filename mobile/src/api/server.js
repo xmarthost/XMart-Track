@@ -12,17 +12,24 @@ export const setBase = (url) => {
 
 const shortPath = (path) => path.split('?')[0];
 
-export async function api(path, options = {}) {
+// Every request has a time limit so a stalled connection never leaves a screen waiting forever.
+export async function api(path, { timeout = 20000, ...options } = {}) {
   let response;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
   try {
     response = await fetch(`${base}/${path}`, {
       credentials: 'include',
+      signal: controller.signal,
       ...options,
       headers: { Accept: 'application/json', ...(options.headers || {}) },
     });
   } catch (error) {
-    logError('api', `${options.method || 'GET'} ${shortPath(path)} network error:`, error);
-    throw error;
+    const reason = controller.signal.aborted ? new Error(`timeout after ${timeout / 1000} s`) : error;
+    logError('api', `${options.method || 'GET'} ${shortPath(path)} network error:`, reason);
+    throw reason;
+  } finally {
+    clearTimeout(timer);
   }
   if (!response.ok) {
     const text = await response.text();
