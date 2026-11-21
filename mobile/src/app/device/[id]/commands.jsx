@@ -38,6 +38,16 @@ const groups = [
     { label: 'Set time zone (GMT+5)', data: 'GMT,E,5,0#' },
   ]],
   ['Map link in tracker SMS', [
+    {
+      label: 'Set Google link — try 1 (EURL)',
+      data: 'EURL,http://maps.google.com/maps?q=#',
+      note: 'Then send GPRSSET# below: the URL line should show maps.google.com. If not, use try 2.',
+    },
+    {
+      label: 'Set Google link — try 2 (URL)',
+      data: 'URL,http://maps.google.com/maps?q=#',
+      note: 'Check again with GPRSSET#.',
+    },
     { label: 'Get Google map link (URL#)', data: 'URL#' },
     { label: 'Show link / server settings (GPRSSET#)', data: 'GPRSSET#' },
     { label: 'Firmware version (VERSION#)', data: 'VERSION#' },

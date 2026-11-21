@@ -13,6 +13,8 @@
  */
 package org.traccar.notificators;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.traccar.helper.WebHelper;
 import org.traccar.helper.model.UserUtil;
 import org.traccar.model.Device;
@@ -48,6 +50,8 @@ import java.util.concurrent.CompletableFuture;
  */
 @Singleton
 public class NotificatorXmartWhatsapp extends Notificator {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(NotificatorXmartWhatsapp.class);
 
     public static final String KEY_URL = "xm.wa.url";
     public static final String KEY_SECRET = "xm.wa.secret";
@@ -85,7 +89,7 @@ public class NotificatorXmartWhatsapp extends Notificator {
             return List.of();
         }
         return Arrays.stream(value.split("[,;\\s]+"))
-                .map(String::trim)
+                .map(number -> number.replaceAll("[^0-9]", ""))
                 .filter(number -> !number.isEmpty())
                 .distinct()
                 .toList();
@@ -161,6 +165,7 @@ public class NotificatorXmartWhatsapp extends Notificator {
                 if (response.getStatus() / 100 != 2 || !isSuccess(body)) {
                     throw new MessageException("XMart Sender (" + number + "): " + body);
                 }
+                LOGGER.info("XMart Sender WhatsApp sent to {} ({})", number, event.getType());
             });
         }).toArray(CompletableFuture[]::new);
         return CompletableFuture.allOf(futures);

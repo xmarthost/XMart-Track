@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 import { MaterialIcons } from '@expo/vector-icons';
 import { api, getBase } from '../api/server';
 import { useApp } from '../state/AppState';
-import { colors } from '../state/status';
+import { colors, formatDateTime } from '../state/status';
 import { clearLogs, formatLogTime, getLogs, logInfo, logsAsText, subscribeLogs } from '../state/log';
 import { checkGoogleApi, checkTiles, useMapState } from '../map/mapState';
 import { findStyle } from '../map/mapStyles';
@@ -65,7 +65,7 @@ const tests = [
         const events = await api(`api/reports/events?${ids}&type=ignitionOn&type=ignitionOff&from=${from}&to=${now.toISOString()}`);
         if (!events.length) throw new Error('server saw no ACC ON/OFF in 24 h: tracker data did not reach the server');
         const last = events.sort((a, b) => new Date(b.eventTime) - new Date(a.eventTime))[0];
-        return `${events.length} events, last ${last.type} at ${new Date(last.eventTime).toLocaleString()}`;
+        return `${events.length} events, last ${last.type} at ${formatDateTime(last.eventTime)}`;
       }),
   ],
   [
