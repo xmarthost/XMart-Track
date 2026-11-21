@@ -102,6 +102,7 @@ export default function Commands() {
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState(null);
   const [history, setHistory] = useState([]);
+  const [showAll, setShowAll] = useState(false);
 
   const loadReplies = () => {
     const from = new Date(Date.now() - 3 * 864e5).toISOString();
@@ -187,12 +188,18 @@ export default function Commands() {
         <View style={styles.group}>
           <Text style={styles.groupTitle}>Tracker replies</Text>
           {history.length === 0 && <Text style={styles.empty}>No replies yet.</Text>}
-          {history.slice(0, 20).map((reply) => (
+          {history.slice(0, showAll ? 50 : 5).map((reply) => (
             <View key={reply.id} style={styles.reply}>
               <Text style={styles.replyTime}>{formatDateTime(reply.eventTime)}</Text>
               <Text style={styles.replyText}>{reply.attributes?.result}</Text>
             </View>
           ))}
+          {history.length > 5 && (
+            <Pressable style={styles.more} onPress={() => setShowAll(!showAll)}>
+              <Text style={styles.moreText}>{showAll ? 'Show less' : `More (${history.length - 5})`}</Text>
+              <MaterialIcons name={showAll ? 'expand-less' : 'expand-more'} size={20} color={colors.teal} />
+            </Pressable>
+          )}
         </View>
       </ScrollView>
 
@@ -276,6 +283,8 @@ const styles = StyleSheet.create({
   reply: { paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 1, borderTopColor: colors.background },
   replyTime: { fontSize: 12, color: colors.muted },
   replyText: { fontSize: 14, color: colors.text, fontFamily: 'monospace', marginTop: 2 },
+  more: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.background },
+  moreText: { color: colors.teal, fontWeight: '700' },
   backdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.45)' },
   sheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 18, paddingBottom: 26 },
   grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: 12 },

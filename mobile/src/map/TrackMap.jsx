@@ -25,6 +25,8 @@ export const carsGeoJSON = (cars) => ({
   })),
 });
 
+const emptyCollection = { type: 'FeatureCollection', features: [] };
+
 export const lineGeoJSON = (points) => ({
   type: 'Feature',
   properties: {},
@@ -81,16 +83,15 @@ const TrackMap = forwardRef(function TrackMap(
       >
         <Camera ref={cameraRef} initialViewState={initialViewState} />
         <Images images={carIcons} />
-        {trail && trail.length > 1 && (
-          <GeoJSONSource id="trail" data={lineGeoJSON(trail)}>
-            <Layer
-              id="trail-line"
-              type="line"
-              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-              paint={{ 'line-color': '#16A34A', 'line-width': 5 }}
-            />
-          </GeoJSONSource>
-        )}
+        {/* always mounted before the cars so the line stays under the car icons */}
+        <GeoJSONSource id="trail" data={trail && trail.length > 1 ? lineGeoJSON(trail) : emptyCollection}>
+          <Layer
+            id="trail-line"
+            type="line"
+            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+            paint={{ 'line-color': '#4ADE80', 'line-opacity': 0.8, 'line-width': 4 }}
+          />
+        </GeoJSONSource>
         <GeoJSONSource
           id="cars"
           data={carsGeoJSON(cars)}
