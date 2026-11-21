@@ -314,11 +314,16 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
           title: t('xmSatellites'),
           value: attributes.sat ?? '--',
         },
-        {
-          icon: <BatteryStdIcon />,
-          title: t('xmBackupBattery'),
-          value: attributes.batteryLevel != null ? formatPercentage(attributes.batteryLevel) : '--',
-        },
+        // the tracker's own backup battery: only shown when the tracker reports it
+        ...(attributes.batteryLevel != null
+          ? [
+              {
+                icon: <BatteryStdIcon />,
+                title: t('xmBackupBattery'),
+                value: formatPercentage(attributes.batteryLevel),
+              },
+            ]
+          : []),
       ]
     : [];
 

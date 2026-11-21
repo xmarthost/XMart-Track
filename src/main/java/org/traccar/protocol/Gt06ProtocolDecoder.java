@@ -975,6 +975,9 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
                             || (modelNT && (type == MSG_GPS_LBS_2 || type == MSG_GPS_LBS_DRIVER))) {
                         position.set(Position.KEY_POWER, buf.readUnsignedShort() / 100.0);
                     }
+                    // WanWay G19S status packets carry 0xF0 instead of a battery level and put the
+                    // vehicle voltage (0.1 V) where other models send the alarm/extension byte
+                    boolean voltageInExtension = false;
                     if (type == MSG_STATUS && "R11".equals(model)) {
                         position.set(Position.KEY_POWER, buf.readUnsignedShort() / 100.0);
                     } else {
@@ -985,9 +988,8 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
                             position.set(Position.KEY_BATTERY_LEVEL, battery * 100 / 6);
                         } else if (battery <= 100) {
                             position.set(Position.KEY_BATTERY_LEVEL, battery);
-                        } else if (type == MSG_STATUS) {
-                            // WanWay G19S and similar: vehicle voltage in 0.1 V (e.g. 127 = 12.7 V)
-                            position.set(Position.KEY_POWER, battery / 10.0);
+                        } else if (type == MSG_STATUS && battery == 0xF0) {
+                            voltageInExtension = true;
                         }
                     }
                     position.set(Position.KEY_RSSI, buf.readUnsignedByte());
@@ -1001,6 +1003,8 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
                         }
                         if (type == MSG_STATUS && modelSW) {
                             position.set(Position.KEY_POWER, (double) extension);
+                        } else if (voltageInExtension) {
+                            position.set(Position.KEY_POWER, extension / 10.0);
                         } else if (variant != Variant.VXT01) {
                             position.addAlarm(decodeAlarm(extension, modelLW, modelSW, modelVL));
                             if (variant == Variant.TRX16I) {
