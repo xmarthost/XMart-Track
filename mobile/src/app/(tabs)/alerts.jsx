@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Linking, Modal, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { api } from '../../api/server';
@@ -27,6 +27,7 @@ const alertTitle = (item) =>
 // Window like other tracking apps: where the event happened, on a map, with the address.
 function AlertDetails({ event, onClose }) {
   const { devices, positions, user, setSelectedId } = useApp();
+  const insets = useSafeAreaInsets();
   const [position, setPosition] = useState(null);
   const [address, setAddress] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +65,7 @@ function AlertDetails({ event, onClose }) {
   return (
     <Modal visible animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <View style={styles.detailHeader}>
+        <View style={[styles.detailHeader, { paddingTop: insets.top + 12 }]}>
           <Pressable onPress={onClose} hitSlop={12}>
             <MaterialIcons name="arrow-back" size={26} color={colors.text} />
           </Pressable>
@@ -82,7 +83,7 @@ function AlertDetails({ event, onClose }) {
             {loading ? <ActivityIndicator color={colors.teal} /> : <Text style={styles.empty}>No location for this alert</Text>}
           </View>
         )}
-        <View style={styles.detailCard}>
+        <View style={[styles.detailCard, { marginBottom: insets.bottom + 12 }]}>
           <View style={styles.row}>
             <Text style={styles.detailName} numberOfLines={1}>{device?.name || 'Vehicle'}</Text>
             <Text style={styles.detailType}>{alertTitle(event)}</Text>
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
   time: { fontSize: 12, color: colors.muted, fontWeight: '500' },
   device: { fontSize: 14, color: colors.muted, marginTop: 4, fontWeight: '500' },
   empty: { textAlign: 'center', color: colors.muted, marginTop: 40 },
-  detailHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 44, backgroundColor: '#FFF' },
+  detailHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFF' },
   detailTitle: { fontSize: 19, fontWeight: '700', color: colors.text },
   detailCard: { margin: 12, marginTop: -40, padding: 16, borderRadius: 16, backgroundColor: '#FFF', elevation: 6 },
   detailName: { flex: 1, fontSize: 20, fontWeight: '800', color: colors.text },

@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { api, apiJson } from '../../../api/server';
 import { useApp } from '../../../state/AppState';
@@ -94,6 +95,7 @@ export default function Commands() {
   const { id } = useLocalSearchParams();
   const deviceId = Number(id);
   const { devices, events } = useApp();
+  const insets = useSafeAreaInsets();
   const device = devices[deviceId];
   const [selected, setSelected] = useState(null);
   const [values, setValues] = useState({});
@@ -198,7 +200,7 @@ export default function Commands() {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <Pressable style={styles.backdrop} onPress={() => setSelected(null)} />
           {selected && (
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
               <View style={styles.grabber} />
               <Text style={[styles.sheetTitle, selected.danger && { color: colors.offline }]}>{selected.label}</Text>
               {selected.danger && (
