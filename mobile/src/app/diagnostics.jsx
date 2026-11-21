@@ -44,7 +44,7 @@ const tests = [
   ],
   [
     'Server address lookup',
-    () => timed(async () => String(await api('api/server/geocode?latitude=31.5204&longitude=74.3587')).slice(0, 120)),
+    () => timed(async () => String(await api('api/server/geocode?latitude=31.5204&longitude=74.3587', { raw: true })).slice(0, 120)),
   ],
 ];
 

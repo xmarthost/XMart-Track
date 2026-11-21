@@ -25,8 +25,16 @@ const googleKey = Constants.expoConfig?.extra?.googleKey;
 // never answers, which used to block the server lookup.
 async function lookupAddress(latitude, longitude) {
   try {
-    const text = await api(`api/server/geocode?latitude=${latitude}&longitude=${longitude}`, { timeout: 12000 });
-    if (text && String(text).trim()) return String(text).trim();
+    const text = await api(`api/server/geocode?latitude=${latitude}&longitude=${longitude}`, { timeout: 12000, raw: true });
+    let value = String(text || '').trim();
+    if (value.startsWith('"') && value.endsWith('"')) {
+      try {
+        value = JSON.parse(value);
+      } catch {
+        // keep as is
+      }
+    }
+    if (value) return value;
     logWarn('address', 'server geocode returned no address');
   } catch (error) {
     logWarn('address', 'server geocode failed', error);

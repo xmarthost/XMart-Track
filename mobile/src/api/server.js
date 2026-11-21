@@ -13,7 +13,7 @@ export const setBase = (url) => {
 const shortPath = (path) => path.split('?')[0];
 
 // Every request has a time limit so a stalled connection never leaves a screen waiting forever.
-export async function api(path, { timeout = 20000, ...options } = {}) {
+export async function api(path, { timeout = 20000, raw = false, ...options } = {}) {
   let response;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
@@ -37,6 +37,7 @@ export async function api(path, { timeout = 20000, ...options } = {}) {
     throw new Error(text || `HTTP ${response.status}`);
   }
   if (response.status === 204) return null;
+  if (raw) return response.text();
   const type = response.headers.get('content-type') || '';
   return type.includes('json') ? response.json() : response.text();
 }
