@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { api, socketUrl } from '../api/server';
 import { logInfo, logWarn } from './log';
-import { handleNotificationTaps, registerPush } from './push';
+import { handleNotificationTaps, promptSetupOnce, registerPush } from './push';
 
 const AppContext = createContext(null);
 const TRAIL_LENGTH = 300;
@@ -108,7 +108,10 @@ export function AppProvider({ children }) {
   // push notifications: register this phone once per sign-in, open the vehicle on tap
   useEffect(() => {
     if (!user) return undefined;
-    registerPush(user).then((updated) => updated && setUser(updated));
+    registerPush(user).then((updated) => {
+      if (updated) setUser(updated);
+      promptSetupOnce();
+    });
     return handleNotificationTaps(setSelectedId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);

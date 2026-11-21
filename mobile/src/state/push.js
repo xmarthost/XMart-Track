@@ -1,4 +1,6 @@
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
+import * as Battery from 'expo-battery';
+import * as SecureStore from 'expo-secure-store';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { apiJson } from '../api/server';
@@ -77,6 +79,39 @@ export async function unregisterPush(user) {
     await apiJson(`api/users/${user.id}`, 'PUT', { ...user, attributes });
   } catch (error) {
     logWarn('push', 'unregister failed', error);
+  }
+}
+
+export async function notificationSetupStatus() {
+  const permission = (await Notifications.getPermissionsAsync()).status === 'granted';
+  let battery = true;
+  if (Platform.OS === 'android') {
+    try {
+      battery = !(await Battery.isBatteryOptimizationEnabledAsync());
+    } catch {
+      battery = true;
+    }
+  }
+  return { permission, battery };
+}
+
+// After sign-in, once per install: point to the setup screen when alerts could be held back.
+export async function promptSetupOnce() {
+  try {
+    if (await SecureStore.getItemAsync('xm_setup_prompted')) return;
+    const { permission, battery } = await notificationSetupStatus();
+    if (permission && battery) return;
+    await SecureStore.setItemAsync('xm_setup_prompted', '1');
+    Alert.alert(
+      'Alerts when the app is closed',
+      'Two quick settings make ACC and alarm alerts ring even when XMart Track is closed.',
+      [
+        { text: 'Later', style: 'cancel' },
+        { text: 'Set up', onPress: () => router.push('/notification-setup') },
+      ],
+    );
+  } catch {
+    // ask again next time
   }
 }
 

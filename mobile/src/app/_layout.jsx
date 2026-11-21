@@ -55,6 +55,7 @@ function Gate() {
         <Stack.Screen name="device/[id]/commands" options={headerOptions('Commands')} />
         <Stack.Screen name="device/[id]/playback" options={headerOptions('Playback')} />
         <Stack.Screen name="diagnostics" options={headerOptions('Diagnostics & logs')} />
+        <Stack.Screen name="notification-setup" options={headerOptions('Notification setup')} />
         <Stack.Screen name="alert-settings" options={headerOptions('SMS & WhatsApp alerts')} />
         <Stack.Screen name="account" options={headerOptions('Account')} />
         <Stack.Screen name="devices" options={headerOptions('Devices')} />

@@ -15,6 +15,7 @@ export default function Me() {
     ['dashboard', 'Fleet overview', () => router.push('/overview')],
     ['assessment', 'Reports', () => router.push('/reports')],
     ['sms', 'SMS & WhatsApp alerts', () => router.push('/alert-settings')],
+    ['notifications-active', 'Notification setup (app closed)', () => router.push('/notification-setup')],
     ['devices', 'Devices (add by IMEI)', () => router.push('/devices')],
     ['hexagon', 'Geofences', () => router.push('/geofences')],
     ['security', 'Account & password', () => router.push('/account')],
