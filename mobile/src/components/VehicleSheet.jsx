@@ -15,6 +15,8 @@ const actionColors = {
   navigate: '#14B8A6',
 };
 
+const compass = (deg) => ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round((((deg % 360) + 360) % 360) / 45) % 8];
+
 const addressCache = new Map();
 const googleKey = Constants.expoConfig?.extra?.googleKey;
 
@@ -102,7 +104,7 @@ function useAccSince(deviceId, ignition) {
   return value;
 }
 
-export default function VehicleSheet({ device, position, onClose, onTrack }) {
+export default function VehicleSheet({ device, position, onClose, onTrack, onHeight }) {
   const [expanded, setExpanded] = useState(false);
   const attributes = position?.attributes || {};
   const state = getState(device, position);
@@ -154,6 +156,9 @@ export default function VehicleSheet({ device, position, onClose, onTrack }) {
         : `ACC ${attributes.ignition ? 'ON' : 'OFF'}${extras.accSince ? ` (${since(extras.accSince)})` : ''}`,
       attributes.ignition ? colors.moving : undefined,
     ],
+    ['speed', position ? `${kmh(position.speed)} km/h` : null, position?.speed > 1 ? colors.moving : undefined],
+    ['explore', position?.course != null ? `${compass(position.course)} ${Math.round(position.course)}°` : null],
+    ['signal-cellular-alt', attributes.rssi != null ? `GSM ${attributes.rssi}` : null],
     ['bolt', attributes.power != null ? `${Number(attributes.power).toFixed(1)} V` : null],
     ['battery-std', attributes.batteryLevel != null ? `${attributes.batteryLevel}%` : null],
     ['satellite-alt', attributes.sat != null ? String(attributes.sat) : null],
@@ -161,7 +166,10 @@ export default function VehicleSheet({ device, position, onClose, onTrack }) {
   ].filter((row) => row[1] != null);
 
   return (
-    <View style={[styles.sheet, { maxHeight: expanded ? '82%' : '50%' }]}>
+    <View
+      style={[styles.sheet, { maxHeight: expanded ? '82%' : '50%' }]}
+      onLayout={(e) => !expanded && onHeight?.(Math.round(e.nativeEvent.layout.height))}
+    >
       <Pressable style={styles.handle} onPress={() => setExpanded(!expanded)}>
         <MaterialIcons name={expanded ? 'expand-more' : 'expand-less'} size={26} color={colors.muted} />
       </Pressable>

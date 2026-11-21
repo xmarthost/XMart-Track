@@ -3,9 +3,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Camera, GeoJSONSource, Images, Layer, Map } from '@maplibre/maplibre-react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { carImages } from '../state/status';
-import { logError, logInfo } from '../state/log';
+import { logInfo, logWarn } from '../state/log';
 import { buildStyle } from './mapStyles';
-import { dismissMapNotice, initMapStyle, reportMapFailure, useMapState } from './mapState';
+import { dismissMapNotice, initMapStyle, useMapState } from './mapState';
 
 const carIcons = {
   'car-moving': carImages.moving,
@@ -38,6 +38,7 @@ const TrackMap = forwardRef(function TrackMap(
 ) {
   const { active, tiles, notice } = useMapState();
   const renderedRef = useRef(false);
+  const lastFailRef = useRef(0);
 
   useEffect(() => {
     initMapStyle();
@@ -68,9 +69,14 @@ const TrackMap = forwardRef(function TrackMap(
             logInfo('map', `tiles rendered ${active}`);
           }
         }}
-        onDidFailLoadingMap={() => {
-          logError('map', `failed to load ${active}`);
-          reportMapFailure(active);
+        onDidFailLoadingMap={(event) => {
+          // usually one tile failing during a short network drop while zooming; MapLibre retries
+          // it, so the Google map is kept (switching here made the map jump to a free layer)
+          const now = Date.now();
+          if (now - lastFailRef.current > 10000) {
+            lastFailRef.current = now;
+            logWarn('map', `tile/load error on ${active}`, event?.nativeEvent || '');
+          }
         }}
       >
         <Camera ref={cameraRef} initialViewState={initialViewState} />

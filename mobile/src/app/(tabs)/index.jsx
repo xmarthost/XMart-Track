@@ -6,6 +6,7 @@ import { useApp } from '../../state/AppState';
 import { colors, getState, kmh, since } from '../../state/status';
 import VehicleSheet from '../../components/VehicleSheet';
 import MapButtons from '../../components/MapButtons';
+import PullToRefresh from '../../components/PullToRefresh';
 import TrackMap from '../../map/TrackMap';
 import { findStyle, mapStyles } from '../../map/mapStyles';
 import { chooseMapStyle, useMapState } from '../../map/mapState';
@@ -26,6 +27,7 @@ export default function Monitor() {
   const { chosen: mapStyle, active: activeStyle } = useMapState();
   const [mapTypeOpen, setMapTypeOpen] = useState(false);
   const [sheetHeight, setSheetHeight] = useState(0);
+  const [areaHeight, setAreaHeight] = useState(0);
   const cameraRef = useRef(null);
   const lastCenteredRef = useRef(null);
 
@@ -55,7 +57,9 @@ export default function Monitor() {
     // only the first render matters
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const padding = { top: 0, right: 0, left: 0, bottom: selected ? sheetHeight : 0 };
+  // keep the car in the middle of the part of the map that the bottom sheet does not cover
+  const sheetPad = selected ? sheetHeight || Math.round(areaHeight * 0.5) : 0;
+  const padding = { top: 0, right: 0, left: 0, bottom: sheetPad };
 
   const centerOn = (position) => {
     if (!position || !cameraRef.current) return;
@@ -84,9 +88,26 @@ export default function Monitor() {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, selectedPosition, view, sheetHeight]);
+  }, [selectedId, selectedPosition, view]);
+
+  // the sheet's real height is known after it renders: re-center for it
+  useEffect(() => {
+    if (view !== 'map' || !selectedPosition || !cameraRef.current || !sheetHeight) return;
+    cameraRef.current.easeTo({
+      center: [selectedPosition.longitude, selectedPosition.latitude],
+      padding,
+      duration: 300,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheetHeight]);
+
+  // a vehicle chosen elsewhere (alert banner, overview) opens on the map
+  useEffect(() => {
+    if (selectedId) setView('map');
+  }, [selectedId]);
 
   const openVehicle = (id) => {
+    if (id !== selectedId) setSheetHeight(0);
     setSelectedId(id);
     lastCenteredRef.current = null;
     setView('map');
@@ -107,7 +128,7 @@ export default function Monitor() {
       const lats = coordinates.map((p) => p.latitude);
       cameraRef.current?.fitBounds(
         [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)],
-        { padding: { top: 80, right: 80, bottom: (selected ? sheetHeight : 0) + 80, left: 80 }, duration: 600 },
+        { padding: { top: 80, right: 80, bottom: sheetPad + 80, left: 80 }, duration: 600 },
       );
     }
   };
@@ -182,7 +203,7 @@ export default function Monitor() {
         ))}
       </View>
 
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1 }} onLayout={(e) => setAreaHeight(e.nativeEvent.layout.height)}>
         <View style={StyleSheet.absoluteFill}>
           <TrackMap
             ref={cameraRef}
@@ -205,16 +226,13 @@ export default function Monitor() {
             position={selectedPosition}
           />
           {selected && (
-            <View
-              style={StyleSheet.absoluteFill}
-              pointerEvents="box-none"
-              onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height * 0.5)}
-            >
+            <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
               <VehicleSheet
                 device={selected}
                 position={selectedPosition}
                 onClose={() => setSelectedId(null)}
                 onTrack={() => centerOn(selectedPosition)}
+                onHeight={setSheetHeight}
               />
             </View>
           )}
@@ -244,13 +262,20 @@ export default function Monitor() {
                 </Pressable>
               ))}
             </View>
-            <FlatList
-              data={filtered}
-              keyExtractor={(item) => String(item.id)}
-              renderItem={renderRow}
-              contentContainerStyle={{ paddingBottom: 24 }}
-              ListEmptyComponent={<Text style={styles.empty}>No devices found</Text>}
-            />
+            <PullToRefresh onRefresh={refresh}>
+              {(onScroll) => (
+                <FlatList
+                  data={filtered}
+                  keyExtractor={(item) => String(item.id)}
+                  renderItem={renderRow}
+                  onScroll={onScroll}
+                  scrollEventThrottle={16}
+                  overScrollMode="never"
+                  contentContainerStyle={{ paddingBottom: 24 }}
+                  ListEmptyComponent={<Text style={styles.empty}>No devices found</Text>}
+                />
+              )}
+            </PullToRefresh>
           </View>
         )}
       </View>

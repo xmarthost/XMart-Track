@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
+import { OfflineManager } from '@maplibre/maplibre-react-native';
 import { logInfo, logWarn } from '../state/log';
 import { DEFAULT_STYLE, FALLBACK_ROAD, FALLBACK_SATELLITE, findStyle, isGoogle, sampleTile } from './mapStyles';
 
@@ -124,9 +125,15 @@ async function activate(id) {
   });
 }
 
+const CACHE_BYTES = 512 * 1024 * 1024;
+
 export function initMapStyle() {
   if (loaded) return;
   loaded = true;
+  // keep viewed tiles on the phone so zooming and panning back over an area is instant
+  OfflineManager.setMaximumAmbientCacheSize(CACHE_BYTES)
+    .then(() => logInfo('map', 'tile cache 512 MB'))
+    .catch((error) => logWarn('map', 'tile cache setup failed', error));
   SecureStore.getItemAsync(PREF_KEY)
     .catch(() => null)
     .then((saved) => activate(saved && findStyle(saved).id === saved ? saved : DEFAULT_STYLE));

@@ -30,7 +30,7 @@ export default function MapButtons({
     <>
       <View style={[styles.column, { left: 14 }]}>
         <Button icon="autorenew" onPress={onRefresh} />
-        <Button icon="fence" family="c" onPress={() => Linking.openURL('https://xmarttrack.site/geofences')} />
+        <Button icon="fence" family="c" onPress={() => router.push('/geofences')} />
         <Button icon="map" onPress={onMapType} />
         <View style={[styles.pair, !canSwitch && { opacity: 0.45 }]}>
           <Pressable style={styles.pairButton} onPress={onPrevious} disabled={!canSwitch}>

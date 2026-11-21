@@ -11,13 +11,14 @@ export default function Me() {
   const web = (path) => Linking.openURL(`${getBase()}/${path}`);
 
   const items = [
-    ['dashboard', 'Fleet overview', () => web('reports/dashboard')],
-    ['assessment', 'Reports', () => web('reports/combined')],
-    ['sms', 'SMS & WhatsApp alerts', () => web('settings/sms-alerts')],
-    ['devices', 'Devices', () => web('settings/devices')],
-    ['hexagon', 'Geofences', () => web('geofences')],
-    ['security', 'Account security', () => web(`settings/user/${user?.id}`)],
+    ['dashboard', 'Fleet overview', () => router.push('/overview')],
+    ['assessment', 'Reports', () => router.push('/reports')],
+    ['sms', 'SMS & WhatsApp alerts', () => router.push('/alert-settings')],
+    ['devices', 'Devices (add by IMEI)', () => router.push('/devices')],
+    ['hexagon', 'Geofences', () => router.push('/geofences')],
+    ['security', 'Account & password', () => router.push('/account')],
     ['bug-report', 'Diagnostics & logs', () => router.push('/diagnostics')],
+    ['admin-panel-settings', 'Server admin (website)', () => web('settings/integrations')],
   ];
 
   return (

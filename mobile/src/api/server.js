@@ -84,3 +84,11 @@ export async function logout() {
 }
 
 export const socketUrl = () => `${base.replace(/^http/, 'ws')}/api/socket`;
+
+// JSON request helper for create/update/delete calls.
+export const apiJson = (path, method, body) =>
+  api(path, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });

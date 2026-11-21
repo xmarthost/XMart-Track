@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { AppProvider, useApp } from '../state/AppState';
 import { restoreSession } from '../api/server';
 import { colors } from '../state/status';
+import EventBanner from '../components/EventBanner';
 
 installLogCapture();
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -51,7 +52,14 @@ function Gate() {
         <Stack.Screen name="device/[id]/commands" options={headerOptions('Commands')} />
         <Stack.Screen name="device/[id]/playback" options={headerOptions('Playback')} />
         <Stack.Screen name="diagnostics" options={headerOptions('Diagnostics & logs')} />
+        <Stack.Screen name="alert-settings" options={headerOptions('SMS & WhatsApp alerts')} />
+        <Stack.Screen name="account" options={headerOptions('Account')} />
+        <Stack.Screen name="devices" options={headerOptions('Devices')} />
+        <Stack.Screen name="geofences" options={headerOptions('Geofences')} />
+        <Stack.Screen name="reports" options={headerOptions('Reports')} />
+        <Stack.Screen name="overview" options={headerOptions('Fleet overview')} />
       </Stack>
+      <EventBanner />
       {!ready && (
         <View style={StyleSheet.absoluteFill}>
           <Welcome />

@@ -17,15 +17,27 @@ const groups = [
     { label: 'Query parameters', data: 'PARAM#' },
     { label: 'Query ACC SMS alert', data: 'ACCALM#' },
   ]],
+  ['Data upload', [
+    {
+      label: 'Upload interval',
+      data: 'TIMER,{moving},{parked}#',
+      fields: [
+        { key: 'moving', label: 'While driving (seconds, 5–18000)', initial: '10', numeric: true },
+        { key: 'parked', label: 'While parked / ACC off (seconds)', initial: '300', numeric: true },
+      ],
+      note: 'Lower = more real-time tracking, more data use. 10 s while driving is recommended.',
+    },
+    { label: 'Real-time mode (10 s driving / 5 min parked)', data: 'TIMER,10,300#' },
+    { label: 'Battery saver (60 s driving / 30 min parked)', data: 'TIMER,60,1800#' },
+  ]],
   ['Setting', [
-    { label: 'Add SOS number', data: 'sos,a,{value}#', input: 'Mobile number' },
-    { label: 'Set center number', data: 'center,a,{value}#', input: 'Mobile number' },
+    { label: 'Add SOS number', data: 'sos,a,{value}#', fields: [{ key: 'value', label: 'Mobile number', phone: true }] },
+    { label: 'Set center number', data: 'center,a,{value}#', fields: [{ key: 'value', label: 'Mobile number', phone: true }] },
     { label: 'ACC SMS alert ON (tracker SIM)', data: 'ACCALM,ON,1#' },
     { label: 'ACC SMS alert OFF', data: 'ACCALM,OFF#' },
-    { label: 'Real-time mode (every 10 s)', data: 'TIMER,10,300#' },
     { label: 'Set time zone (GMT+5)', data: 'GMT,E,5,0#' },
   ]],
-  ['Custom', [{ label: 'Custom command', data: '{value}', input: 'Command text' }]],
+  ['Custom', [{ label: 'Custom command', data: '{value}', fields: [{ key: 'value', label: 'Command text' }] }]],
 ];
 
 export default function Commands() {
@@ -44,12 +56,29 @@ export default function Commands() {
   };
   useEffect(loadReplies, [deviceId, events.length]);
 
+  const fieldValue = (item, field) => {
+    const value = inputs[`${item.label}:${field.key}`];
+    return (value === undefined ? field.initial || '' : value).trim();
+  };
+
   const send = (item) => {
-    const text = item.data ? item.data.replace('{value}', (inputs[item.label] || '').trim()) : null;
-    if (item.input && !(inputs[item.label] || '').trim()) {
-      Alert.alert(item.label, `Enter ${item.input.toLowerCase()} first.`);
+    const missing = (item.fields || []).find((field) => !fieldValue(item, field));
+    if (missing) {
+      Alert.alert(item.label, `Enter ${missing.label.toLowerCase()} first.`);
       return;
     }
+    const badNumber = (item.fields || []).find((field) => {
+      if (!field.numeric) return false;
+      const n = Number(fieldValue(item, field));
+      return !Number.isInteger(n) || n < 5 || n > 18000;
+    });
+    if (badNumber) {
+      Alert.alert(item.label, 'Seconds must be a whole number between 5 and 18000.');
+      return;
+    }
+    const text = item.data
+      ? (item.fields || []).reduce((result, field) => result.replace(`{${field.key}}`, fieldValue(item, field)), item.data)
+      : null;
     const run = async () => {
       try {
         const body = item.type
@@ -88,14 +117,19 @@ export default function Commands() {
                 <Text style={[styles.itemText, item.danger && { color: colors.offline }]}>{item.label}</Text>
                 <MaterialIcons name="chevron-right" size={22} color="#94A3B8" />
               </Pressable>
-              {item.input && (
-                <TextInput
-                  style={styles.input}
-                  placeholder={item.input}
-                  value={inputs[item.label] || ''}
-                  onChangeText={(value) => setInputs({ ...inputs, [item.label]: value })}
-                />
-              )}
+              {(item.fields || []).map((field) => (
+                <View key={field.key} style={styles.field}>
+                  <Text style={styles.fieldLabel}>{field.label}</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={field.label}
+                    keyboardType={field.numeric ? 'number-pad' : field.phone ? 'phone-pad' : 'default'}
+                    value={inputs[`${item.label}:${field.key}`] ?? field.initial ?? ''}
+                    onChangeText={(value) => setInputs({ ...inputs, [`${item.label}:${field.key}`]: value })}
+                  />
+                </View>
+              ))}
+              {item.note && <Text style={styles.note}>{item.note}</Text>}
             </View>
           ))}
         </View>
@@ -120,6 +154,9 @@ const styles = StyleSheet.create({
   groupTitle: { fontSize: 16, fontWeight: '700', color: colors.text, margin: 14, marginBottom: 4, paddingLeft: 8, borderLeftWidth: 3, borderLeftColor: colors.teal },
   item: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: colors.background },
   itemText: { flex: 1, fontSize: 15, fontWeight: '500', color: colors.muted },
+  field: { marginTop: 2 },
+  fieldLabel: { marginHorizontal: 16, marginBottom: 4, fontSize: 12, color: colors.muted, fontWeight: '600' },
+  note: { marginHorizontal: 16, marginBottom: 10, fontSize: 12, color: colors.muted },
   input: { marginHorizontal: 16, marginBottom: 10, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
   empty: { color: colors.muted, paddingHorizontal: 16, paddingBottom: 12 },
   reply: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.background },
