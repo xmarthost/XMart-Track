@@ -1,6 +1,6 @@
 // Raster map styles drawn by MapLibre, so the map does not depend on the Google Maps Android SDK.
-// Google layers use the official Map Tiles API with the app's key (`api`), then the public Google
-// tile servers (`tiles`), then a free layer as the last fallback.
+// Google layers load the public Google tile servers (`tiles`, same as the website). `api` is the
+// official Map Tiles API request used by Diagnostics to check the Google key.
 const CARTO_KEY = 'cb1_5dap_1_ff183c56a35ff4dd2f3a8c64';
 const google = (layer) =>
   [0, 1, 2, 3].map((n) => `https://mt${n}.google.com/vt/lyrs=${layer}&hl=en&gl=pk&x={x}&y={y}&z={z}&scale=2`);

@@ -72,7 +72,9 @@ export function installLogCapture() {
   ['warn', 'error'].forEach((level) => {
     const original = console[level];
     console[level] = (...args) => {
-      log(level, 'console', ...args);
+      // tile requests cancelled while panning/zooming are normal and only add noise
+      const text = typeof args[0] === 'string' ? args[0] : '';
+      if (!text.includes('stream was reset: CANCEL') && !text.includes('Canceled')) log(level, 'console', ...args);
       original.apply(console, args);
     };
   });

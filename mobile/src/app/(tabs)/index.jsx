@@ -262,7 +262,10 @@ export default function Monitor() {
                 </Pressable>
               ))}
             </View>
-            <PullToRefresh onRefresh={refresh}>
+            <PullToRefresh
+              onRefresh={refresh}
+              summary={`Online ${counts.online}  •  Offline ${counts.offline + counts.unknown}`}
+            >
               {(onScroll) => (
                 <FlatList
                   data={filtered}

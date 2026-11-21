@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 import { OfflineManager } from '@maplibre/maplibre-react-native';
 import { logInfo, logWarn } from '../state/log';
-import { DEFAULT_STYLE, FALLBACK_ROAD, FALLBACK_SATELLITE, findStyle, isGoogle, sampleTile } from './mapStyles';
+import { DEFAULT_STYLE, findStyle, sampleTile } from './mapStyles';
 
 const PREF_KEY = 'xm_map_style';
 const CHECK_TIMEOUT = 7000;
@@ -14,7 +14,6 @@ const googleKey = Constants.expoConfig?.extra?.googleKey;
 let state = { chosen: DEFAULT_STYLE, active: DEFAULT_STYLE, tiles: null, source: null, notice: null };
 const listeners = new Set();
 let loaded = false;
-let generation = 0;
 
 const emit = (patch) => {
   state = { ...state, ...patch };
@@ -81,47 +80,17 @@ export const checkGoogleApi = (id = 'googleRoad') =>
     return checkTemplate(template);
   });
 
-const fallbackFor = (id) => (findStyle(id).satellite ? FALLBACK_SATELLITE : FALLBACK_ROAD);
-
-async function activate(id) {
-  const run = ++generation;
+// The style is shown exactly as chosen. MapLibre loads and retries tiles itself; an earlier JS
+// pre-check (fetch) timed out on the phone while the map was loading fine, and switching styles
+// on that result made the map jump to a free layer. Free layers are only used when picked.
+function activate(id) {
   const style = findStyle(id);
-  emit({ chosen: id, active: id, tiles: null, source: style.group === 'Google' ? 'checking…' : style.label, notice: null });
-  if (!isGoogle(id)) return;
-
-  // 1. official Google Map Tiles API with the app's key
-  try {
-    const template = await googleApiTemplate(id);
-    const result = await checkTemplate(template);
-    if (run !== generation) return;
-    if (result.ok) {
-      logInfo('map', `${id}: Google Map Tiles API OK (${result.ms} ms)`);
-      emit({ tiles: [template], source: 'Google Map Tiles API (your key)' });
-      return;
-    }
-    logWarn('map', `${id}: Map Tiles API tile failed: ${result.detail}`);
-  } catch (error) {
-    if (run !== generation) return;
-    logWarn('map', `${id}: Map Tiles API unavailable: ${error?.message || error}`);
-  }
-
-  // 2. public Google tile servers
-  const result = await checkTiles(id);
-  if (run !== generation) return;
-  if (result.ok) {
-    logInfo('map', `${id}: public Google tiles OK (${result.ms} ms)`);
-    emit({ tiles: style.tiles, source: 'Google public tiles (no key)' });
-    return;
-  }
-
-  // 3. free map
-  const fallback = fallbackFor(id);
-  logWarn('map', `${id}: Google tiles failed (${result.detail}); switched to ${fallback}`);
   emit({
-    active: fallback,
+    chosen: id,
+    active: id,
     tiles: null,
-    source: findStyle(fallback).label,
-    notice: `Google map not loading — using ${findStyle(fallback).label}`,
+    source: style.group === 'Google' ? 'Google tiles' : style.label,
+    notice: null,
   });
 }
 
@@ -143,19 +112,6 @@ export function chooseMapStyle(id) {
   SecureStore.setItemAsync(PREF_KEY, id).catch(() => {});
   logInfo('map', `style chosen: ${id}`);
   activate(id);
-}
-
-// Called when MapLibre reports the style failed to load.
-export function reportMapFailure(id) {
-  if (state.active !== id || !isGoogle(id)) return;
-  const fallback = fallbackFor(id);
-  logWarn('map', `${id} failed to load in the map; switched to ${fallback}`);
-  emit({
-    active: fallback,
-    tiles: null,
-    source: findStyle(fallback).label,
-    notice: `Google map not loading — using ${findStyle(fallback).label}`,
-  });
 }
 
 export const dismissMapNotice = () => emit({ notice: null });

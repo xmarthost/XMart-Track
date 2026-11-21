@@ -14,12 +14,13 @@ const stamp = (date) =>
 // "Pull down to refresh" (arrow down) → "Release to refresh" (arrow up) → "Refreshing" (spinner)
 // → "Refresh Success" with the last update time.
 // children is a function receiving `onScroll` for the scrollable list inside.
-export default function PullToRefresh({ onRefresh, children }) {
+export default function PullToRefresh({ onRefresh, summary, children }) {
   const pull = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(0);
   const [phase, setPhase] = useState('idle'); // idle | pull | release | refreshing | done
   const phaseRef = useRef('idle');
   const [lastUpdate, setLastUpdate] = useState(null);
+  const failedRef = useRef(false);
 
   const setPhaseBoth = (value) => {
     phaseRef.current = value;
@@ -31,18 +32,25 @@ export default function PullToRefresh({ onRefresh, children }) {
     setPhaseBoth('done');
     setTimeout(() => {
       Animated.timing(pull, { toValue: 0, duration: 220, useNativeDriver: false }).start(() => setPhaseBoth('idle'));
-    }, 700);
+    }, 1200);
   };
 
   const startRefresh = async () => {
     setPhaseBoth('refreshing');
     Animated.timing(pull, { toValue: HOLD, duration: 150, useNativeDriver: false }).start();
+    const started = Date.now();
+    let ok = true;
     try {
       await onRefresh();
     } catch {
-      // the list keeps its data; the log has the error
+      ok = false; // the list keeps its data; the log has the error
     }
-    finish();
+    // keep the spinner visible long enough to be seen
+    const wait = Math.max(0, 1000 - (Date.now() - started));
+    setTimeout(() => {
+      failedRef.current = !ok;
+      finish();
+    }, wait);
   };
 
   const responder = useRef(
@@ -73,7 +81,7 @@ export default function PullToRefresh({ onRefresh, children }) {
     pull: 'Pull down to refresh',
     release: 'Release To Refresh',
     refreshing: 'Refreshing',
-    done: 'Refresh Success',
+    done: failedRef.current ? 'Refresh failed — check internet' : 'Refresh Success',
   }[phase];
 
   return (
@@ -83,8 +91,14 @@ export default function PullToRefresh({ onRefresh, children }) {
           <View style={styles.row}>
             <View style={styles.icon}>
               {phase === 'refreshing' ? (
-                <ActivityIndicator size="small" color={colors.muted} />
-              ) : phase === 'done' ? null : (
+                <ActivityIndicator size="small" color={colors.teal} />
+              ) : phase === 'done' ? (
+                <MaterialIcons
+                  name={failedRef.current ? 'error-outline' : 'check-circle'}
+                  size={22}
+                  color={failedRef.current ? colors.offline : colors.moving}
+                />
+              ) : (
                 <MaterialIcons
                   name={phase === 'release' ? 'arrow-upward' : 'arrow-downward'}
                   size={22}
@@ -94,7 +108,9 @@ export default function PullToRefresh({ onRefresh, children }) {
             </View>
             <View style={{ alignItems: 'center' }}>
               <Text style={styles.title}>{title}</Text>
-              <Text style={styles.subtitle}>{`Last Update ${stamp(lastUpdate)}`}</Text>
+              <Text style={styles.subtitle}>
+                {`Last Update ${stamp(lastUpdate)}${phase === 'done' && summary ? `  •  ${summary}` : ''}`}
+              </Text>
             </View>
             <View style={styles.icon} />
           </View>
