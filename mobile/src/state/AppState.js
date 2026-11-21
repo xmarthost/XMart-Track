@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { api, socketUrl } from '../api/server';
 import { logInfo, logWarn } from './log';
+import { handleNotificationTaps, registerPush } from './push';
 
 const AppContext = createContext(null);
 const TRAIL_LENGTH = 300;
@@ -100,7 +101,17 @@ export function AppProvider({ children }) {
       clearInterval(timer);
       socketRef.current?.close();
     };
-  }, [user, refresh, applyPositions]);
+    // reconnect only when a different user signs in, not when the user's attributes change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, refresh, applyPositions]);
+
+  // push notifications: register this phone once per sign-in, open the vehicle on tap
+  useEffect(() => {
+    if (!user) return undefined;
+    registerPush(user).then((updated) => updated && setUser(updated));
+    return handleNotificationTaps(setSelectedId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const value = {
     user,

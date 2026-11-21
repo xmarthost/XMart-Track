@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getBase, logout } from '../../api/server';
+import { unregisterPush } from '../../state/push';
 import { useApp } from '../../state/AppState';
 import { colors } from '../../state/status';
 
@@ -47,6 +48,7 @@ export default function Me() {
           <Pressable
             style={styles.item}
             onPress={async () => {
+              await unregisterPush(user);
               await logout();
               setUser(null);
               router.replace('/login');

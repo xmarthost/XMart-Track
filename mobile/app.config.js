@@ -22,6 +22,8 @@ module.exports = {
         backgroundColor: '#FFFFFF',
       },
       permissions: ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'POST_NOTIFICATIONS', 'VIBRATE'],
+      // Firebase project for push notifications (server sends through Firebase Cloud Messaging)
+      googleServicesFile: './google-services.json',
     },
     plugins: [
       'expo-router',
@@ -46,6 +48,14 @@ module.exports = {
         },
       ],
       '@maplibre/maplibre-react-native',
+      [
+        'expo-notifications',
+        {
+          icon: './assets/notification-icon.png',
+          color: '#007080',
+          defaultChannel: 'xm_alerts',
+        },
+      ],
     ],
     extra: {
       server: process.env.XMART_SERVER || 'https://xmarttrack.site',

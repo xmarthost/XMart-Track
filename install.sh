@@ -175,7 +175,24 @@ open(path, 'w', encoding='utf-8').write(text)
 PY
 }
 log "Updating server settings"
-set_config notificator.types 'web,sms,command,xmwhatsapp'
+# Firebase push notifications for the mobile app: enabled when the service account key is on the server
+FIREBASE_KEY="/root/firebase-service-account.json"
+NOTIFICATORS='web,sms,command,xmwhatsapp'
+if [ -f "$FIREBASE_KEY" ]; then
+  chmod 600 "$FIREBASE_KEY"
+  if python3 -c "import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d.get('type')=='service_account' and d.get('private_key') else 1)" "$FIREBASE_KEY"; then
+    set_config notificator.firebase.serviceAccount "$(cat "$FIREBASE_KEY")"
+    NOTIFICATORS="$NOTIFICATORS,firebase"
+    # alerts saved from the SMS & WhatsApp page also go to the app from now on
+    if [ "$FIRST_INSTALL" -eq 0 ]; then
+      mysql -u root xmarttrack -e "UPDATE tc_notifications SET notificators=CONCAT(notificators, ',firebase') WHERE attributes LIKE '%xmSms%' AND notificators NOT LIKE '%firebase%';" 2>/dev/null || true
+    fi
+    log "Firebase push notifications enabled"
+  else
+    warn "$FIREBASE_KEY is not a Firebase service account key; push notifications stay off"
+  fi
+fi
+set_config notificator.types "$NOTIFICATORS"
 set_config geocoder.format '%f'
 set_config geocoder.cacheSize '20000'
 set_config processing.copyAttributes.enable 'true'

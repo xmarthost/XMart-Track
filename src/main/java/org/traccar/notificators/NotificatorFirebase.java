@@ -103,14 +103,20 @@ public class NotificatorFirebase extends Notificator {
                 Arrays.asList(user.getString("notificationTokens").split("[, ]")));
         registrationTokens.sort(Comparator.comparing(token -> token.length() == 22));
 
+        // vehicle alerts must ring right away: high priority (delivered in doze) on the app's
+        // "xm_alerts" channel, which the XMart Track app creates with sound and vibration
         var androidConfig = AndroidConfig.builder()
-                .setNotification(AndroidNotification.builder().setSound("default").build());
+                .setPriority(AndroidConfig.Priority.HIGH)
+                .setNotification(AndroidNotification.builder()
+                        .setSound("default")
+                        .setChannelId("xm_alerts")
+                        .setDefaultVibrateTimings(true)
+                        .build());
 
         var apnsConfig = ApnsConfig.builder()
                 .setAps(Aps.builder().setSound("default").build());
 
         if (message.priority()) {
-            androidConfig.setPriority(AndroidConfig.Priority.HIGH);
             apnsConfig.putHeader("apns-priority", "10");
         }
 
