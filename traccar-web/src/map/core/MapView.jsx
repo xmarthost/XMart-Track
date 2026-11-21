@@ -21,10 +21,17 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
 maplibregl.addProtocol('google', googleProtocol);
 maplibregl.addProtocol('pmtiles', new Protocol().tile);
 
+// North-up map like tracking apps: raster map labels turn upside down when the map rotates,
+// so rotating and tilting by touch/mouse is turned off.
 export const map = new maplibregl.Map({
   container: element,
   attributionControl: false,
+  dragRotate: false,
+  pitchWithRotate: false,
+  touchPitch: false,
 });
+map.touchZoomRotate.disableRotation();
+map.keyboard.disableRotation();
 
 let ready = false;
 const readyListeners = new Set();
@@ -102,7 +109,7 @@ const MapView = ({ children, bare = false }) => {
 
   useEffect(() => {
     const attribution = new maplibregl.AttributionControl({ compact: true });
-    const navigation = new maplibregl.NavigationControl();
+    const navigation = new maplibregl.NavigationControl({ showCompass: false });
     map.addControl(attribution, theme.direction === 'rtl' ? 'bottom-left' : 'bottom-right');
     if (!bare) {
       map.addControl(navigation, theme.direction === 'rtl' ? 'top-left' : 'top-right');

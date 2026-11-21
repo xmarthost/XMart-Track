@@ -70,6 +70,8 @@ export default function Monitor() {
     cameraRef.current.easeTo({
       center: [position.longitude, position.latitude],
       zoom: STREET_ZOOM,
+      bearing: 0,
+      pitch: 0,
       padding,
       duration: 500,
     });
@@ -87,6 +89,7 @@ export default function Monitor() {
     } else {
       cameraRef.current.easeTo({
         center: [selectedPosition.longitude, selectedPosition.latitude],
+        bearing: 0,
         padding,
         duration: 800,
       });
@@ -100,6 +103,7 @@ export default function Monitor() {
     cameraRef.current.easeTo({
       center: [selectedPosition.longitude, selectedPosition.latitude],
       ...(Date.now() < zoomUntilRef.current ? { zoom: STREET_ZOOM } : {}),
+      bearing: 0,
       padding,
       duration: 400,
     });
@@ -135,7 +139,7 @@ export default function Monitor() {
       const lats = coordinates.map((p) => p.latitude);
       cameraRef.current?.fitBounds(
         [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)],
-        { padding: { top: 80, right: 80, bottom: sheetPad + 80, left: 80 }, duration: 600 },
+        { padding: { top: 80, right: 80, bottom: sheetPad + 80, left: 80 }, bearing: 0, duration: 600 },
       );
     }
   };
