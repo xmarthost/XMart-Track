@@ -173,6 +173,9 @@ set_config geocoder.format '%f'
 set_config geocoder.cacheSize '20000'
 set_config processing.copyAttributes.enable 'true'
 set_config processing.copyAttributes 'power,battery,batteryLevel,ignition,sat,rssi,charge,blocked,odometer'
+# GT06/WanWay trackers send UTC times; after a GMT,E,5,0# command they still report UTC but announce
+# +5 h at login, which shifted every position/event 5 h into the past (and blocked alerts as "old").
+set_config decoder.timezone 'UTC'
 # old installs used OpenFreeMap as the default map; switch them to Google Road
 if [ "$FIRST_INSTALL" -eq 0 ]; then
   mysql -u root xmarttrack -e "UPDATE tc_servers SET map='googleRoad' WHERE map IS NULL OR map='openFreeMap';" 2>/dev/null || true

@@ -94,6 +94,30 @@ function useAddress(position) {
   return address;
 }
 
+// Car battery voltage arrives in separate info packets, so the newest position may not carry it:
+// fall back to the latest voltage seen in the last 12 hours.
+function useVoltage(deviceId, attributes) {
+  const [found, setFound] = useState(null);
+  const live = attributes.power ?? null;
+  useEffect(() => {
+    if (live != null) return undefined;
+    let active = true;
+    const to = new Date();
+    const from = new Date(to.getTime() - 12 * 3600 * 1000);
+    api(`api/reports/route?deviceId=${deviceId}&from=${from.toISOString()}&to=${to.toISOString()}`, { timeout: 15000 })
+      .then((items) => {
+        const last = [...items].reverse().find((p) => p.attributes?.power != null || p.attributes?.battery != null);
+        if (active && last) setFound({ power: last.attributes.power, battery: last.attributes.battery, time: last.deviceTime || last.fixTime });
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [deviceId, live]);
+  if (live != null) return { power: live, battery: attributes.battery };
+  return found || { battery: attributes.battery };
+}
+
 function useAccSince(deviceId, ignition) {
   const [value, setValue] = useState({});
   useEffect(() => {
@@ -128,6 +152,7 @@ export default function VehicleSheet({ device, position, onClose, onTrack, onHei
   const state = getState(device, position);
   const address = useAddress(position);
   const extras = useAccSince(device.id, attributes.ignition);
+  const voltage = useVoltage(device.id, attributes);
 
   const stateText = {
     moving: `Moving ${kmh(position?.speed)} km/h`,
@@ -177,7 +202,13 @@ export default function VehicleSheet({ device, position, onClose, onTrack, onHei
     ['speed', position ? `${kmh(position.speed)} km/h` : null, position?.speed > 1 ? colors.moving : undefined],
     ['explore', position?.course != null ? `${compass(position.course)} ${Math.round(position.course)}°` : null],
     ['signal-cellular-alt', attributes.rssi != null ? `GSM ${attributes.rssi}` : null],
-    ['bolt', attributes.power != null ? `${Number(attributes.power).toFixed(1)} V` : null],
+    [
+      'bolt',
+      voltage.power != null
+        ? `${Number(voltage.power).toFixed(1)} V${voltage.time ? ` (${since(voltage.time)} ago)` : ''}`
+        : null,
+    ],
+    ['battery-charging-full', voltage.battery != null ? `Backup ${Number(voltage.battery).toFixed(2)} V` : null],
     ['battery-std', attributes.batteryLevel != null ? `${attributes.batteryLevel}%` : null],
     ['satellite-alt', attributes.sat != null ? String(attributes.sat) : null],
     ['route', extras.today != null ? `Today ${(extras.today / 1000).toFixed(1)} km` : null],

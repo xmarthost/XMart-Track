@@ -34,7 +34,7 @@ export const duration = (ms) => {
   const minutes = Math.floor(ms / 60000);
   const days = Math.floor(minutes / 1440);
   const hours = Math.floor((minutes % 1440) / 60);
-  if (days > 0) return `${days}d ${hours}h`;
+  if (days > 0) return `${days}d ${hours}h ${minutes % 60}m`;
   if (hours > 0) return `${hours}h ${minutes % 60}m`;
   return `${minutes % 60}m`;
 };
