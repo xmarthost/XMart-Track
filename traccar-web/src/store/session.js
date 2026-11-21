@@ -36,7 +36,7 @@ const { reducer, actions } = createSlice({
       const liveRoutesLimit =
         state.user.attributes['web.liveRouteLength'] ||
         state.server.attributes['web.liveRouteLength'] ||
-        300;
+        3000;
       action.payload.forEach((position) => {
         state.positions[position.deviceId] = position;
         if (liveRoutes !== 'none') {
@@ -52,6 +52,13 @@ const { reducer, actions } = createSlice({
           state.history = {};
         }
       });
+    },
+    // the route of the current trip, loaded from the server (see TripTrailLoader)
+    setHistory(state, action) {
+      const { deviceId, points } = action.payload;
+      const live = state.history[deviceId] || [];
+      const last = live.at(-1);
+      state.history[deviceId] = last ? [...points, last] : points;
     },
   },
 });

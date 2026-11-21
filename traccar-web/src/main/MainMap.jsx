@@ -12,6 +12,7 @@ import MapPadding from '../map/MapPadding';
 import { devicesActions } from '../store';
 import MapDefaultCamera from '../map/main/MapDefaultCamera';
 import MapLiveRoutes from '../map/main/MapLiveRoutes';
+import TripTrailLoader from '../map/main/TripTrailLoader';
 import MapPositionMarkers from '../map/MapPositionMarkers';
 import MapOverlay from '../map/overlay/MapOverlay';
 import MapGeocoder from '../map/control/MapGeocoder';
@@ -46,6 +47,7 @@ const MainMap = ({ filteredPositions, selectedPosition, onEventsClick, bare = fa
         <MapGeofence />
         <MapAccuracy positions={filteredPositions} />
         <MapLiveRoutes deviceIds={filteredPositions.map((p) => p.deviceId)} />
+        <TripTrailLoader />
         <PoiMap />
         <MapPositionMarkers
           positions={filteredPositions}
