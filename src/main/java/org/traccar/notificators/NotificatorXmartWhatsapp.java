@@ -96,7 +96,10 @@ public class NotificatorXmartWhatsapp extends Notificator {
     }
 
     static String titleFor(Event event) {
-        String title = titleFor(event);
+        String title = TITLES.getOrDefault(event.getType(), "🔔 " + event.getType());
+        if (Event.TYPE_ALARM.equals(event.getType()) && event.getString(Position.KEY_ALARM) != null) {
+            title += ": " + event.getString(Position.KEY_ALARM);
+        }
         return title;
     }
 
@@ -105,10 +108,7 @@ public class NotificatorXmartWhatsapp extends Notificator {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
         dateFormat.setTimeZone(UserUtil.getTimezone(server, user));
 
-        String title = TITLES.getOrDefault(event.getType(), "🔔 " + event.getType());
-        if (Event.TYPE_ALARM.equals(event.getType()) && event.getString(Position.KEY_ALARM) != null) {
-            title += ": " + event.getString(Position.KEY_ALARM);
-        }
+        String title = titleFor(event);
 
         StringBuilder message = new StringBuilder();
         message.append("🚘 *").append(device != null ? device.getName() : "Vehicle").append("*\n");

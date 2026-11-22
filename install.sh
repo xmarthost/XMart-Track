@@ -200,6 +200,9 @@ set_config processing.copyAttributes 'power,adc1,battery,batteryLevel,ignition,s
 # GT06/WanWay trackers send UTC times; after a GMT,E,5,0# command they still report UTC but announce
 # +5 h at login, which shifted every position/event 5 h into the past (and blocked alerts as "old").
 set_config decoder.timezone 'UTC'
+# GT06 trackers often drop and re-open the connection (network or power saving); do not flip
+# the vehicle to "offline" on every short disconnect (it becomes "unknown" after the status timeout)
+set_config status.ignoreOffline 'gt06'
 # old installs used OpenFreeMap as the default map; switch them to Google Road
 if [ "$FIRST_INSTALL" -eq 0 ]; then
   mysql -u root xmarttrack -e "UPDATE tc_servers SET map='googleRoad' WHERE map IS NULL OR map='openFreeMap';" 2>/dev/null || true
