@@ -108,10 +108,16 @@ export function AppProvider({ children }) {
   // push notifications: register this phone once per sign-in, open the vehicle on tap
   useEffect(() => {
     if (!user) return undefined;
-    registerPush(user).then((updated) => {
-      if (updated) setUser(updated);
-      promptSetupOnce();
-    });
+    // push only when the server has Firebase switched on
+    api('api/notifications/notificators')
+      .then((list) => {
+        if (!list.some((n) => n.type === 'firebase')) return;
+        registerPush(user).then((updated) => {
+          if (updated) setUser(updated);
+          promptSetupOnce();
+        });
+      })
+      .catch(() => {});
     return handleNotificationTaps(setSelectedId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);

@@ -22,7 +22,6 @@ import io.netty.channel.Channel;
 import org.traccar.BaseProtocolDecoder;
 import org.traccar.NetworkMessage;
 import org.traccar.Protocol;
-import org.traccar.config.Keys;
 import org.traccar.helper.BcdUtil;
 import org.traccar.helper.BitUtil;
 import org.traccar.helper.BufferUtil;
@@ -32,7 +31,6 @@ import org.traccar.helper.Parser;
 import org.traccar.helper.PatternBuilder;
 import org.traccar.helper.StringUtil;
 import org.traccar.helper.UnitsConverter;
-import org.traccar.helper.model.AttributeUtil;
 import org.traccar.model.CellTower;
 import org.traccar.model.Network;
 import org.traccar.model.Position;
@@ -1661,14 +1659,7 @@ public class Gt06ProtocolDecoder extends BaseProtocolDecoder {
 
         }
 
-        // Plain location packets need no reply in the GT06 protocol; WanWay G19S trackers drop the
-        // connection when they get one and then re-upload the point later, so the map lags by minutes.
-        // Set gt06.ack=true (config or device attribute) for trackers that expect it.
-        boolean locationOnly = type == MSG_GPS || type == MSG_GPS_LBS_1 || type == MSG_GPS_LBS_2;
-        if (!locationOnly || (deviceSession != null && AttributeUtil.lookup(
-                getCacheManager(), Keys.PROTOCOL_ACK.withPrefix(getProtocolName()), deviceSession.getDeviceId()))) {
-            sendResponse(channel, false, type, buf.getShort(buf.writerIndex() - 6), null);
-        }
+        sendResponse(channel, false, type, buf.getShort(buf.writerIndex() - 6), null);
 
         return position;
     }
