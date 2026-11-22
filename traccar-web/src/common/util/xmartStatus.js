@@ -18,7 +18,9 @@ export const getDeviceState = (device, position) => {
   if (device.status === 'offline') {
     return 'offline';
   }
-  if (position) {
+  // "moving" only from a recent GPS fix: an old fix (tracker not reporting) is not shown as driving
+  const fresh = position?.fixTime && Date.now() - new Date(position.fixTime).getTime() < 3 * 60 * 1000;
+  if (position && fresh) {
     const { motion } = position.attributes || {};
     if (motion === true || (motion === undefined && position.speed > MOVING_THRESHOLD_KNOTS)) {
       return 'moving';
