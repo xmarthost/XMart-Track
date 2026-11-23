@@ -34,7 +34,7 @@ while [ $# -gt 0 ]; do
     --domain) DOMAIN="$2"; shift 2 ;;
     --email) EMAIL="$2"; shift 2 ;;
     --admin-password) ADMIN_PASSWORD="$2"; shift 2 ;;
-    --branch|--version) BRANCH="$2"; shift 2 ;; # a branch or a version tag such as v1.3.0
+    --branch|--version) BRANCH="$2"; shift 2 ;; # a branch, or a full commit hash from docs/VERSIONS.md
     --no-ssl) SSL=0; shift ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
@@ -95,7 +95,10 @@ if [ -d "$SRC_DIR/.git" ]; then
   git -C "$SRC_DIR" reset --hard FETCH_HEAD
 else
   rm -rf "$SRC_DIR"
-  git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$SRC_DIR"
+  git init -q "$SRC_DIR"
+  git -C "$SRC_DIR" remote add origin "$REPO_URL"
+  git -C "$SRC_DIR" fetch --depth 1 origin "$BRANCH"
+  git -C "$SRC_DIR" reset --hard FETCH_HEAD
 fi
 
 log "Building server (this takes a few minutes the first time)"
