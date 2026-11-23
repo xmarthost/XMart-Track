@@ -13,6 +13,7 @@ Kept from later work: the installer (`install.sh`: tracker time as UTC, Firebase
 |---|---|---|
 | Live green line behind the car (app monitor map) | `d863d43`, `290ad42`, `c972b84` | app |
 | Live route line on the web map (`MapLiveRoutes`) | Traccar original, `c972b84` | web |
+| Green line of the last hour on the web Tracking page (`MapRoutePath` in `TrackingPage.jsx`) | `6f19a83` era | web |
 | App shows car voltage from recent data | `f5f7ff4` | app |
 | North-up map, no touch rotate/tilt (web + app) | `d673833` | web, app |
 | G19S voltage decoding (info 0x94, status byte after GSM) | `c6c6af8`, `14de7ac`, `aec06b2` | server |
