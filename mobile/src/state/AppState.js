@@ -6,6 +6,10 @@ import { handleNotificationTaps, promptSetupOnce, registerPush } from './push';
 const AppContext = createContext(null);
 const TRAIL_LENGTH = 300;
 
+// speed is in knots; 2 knots = 3.7 km/h
+const isTrailPoint = (p) =>
+  p.valid !== false && (p.attributes?.sat ?? 1) > 0 && (p.speed > 2 || p.attributes?.motion === true);
+
 export function AppProvider({ children }) {
   const [user, setUser] = useState(null);
   const [devices, setDevices] = useState({});
@@ -27,6 +31,9 @@ export function AppProvider({ children }) {
     setTrails((previous) => {
       const next = { ...previous };
       items.forEach((p) => {
+        // Only real GPS fixes while driving extend the line: a fix without satellites (valid false)
+        // or a jump while parked would draw a stray line on the map.
+        if (!isTrailPoint(p)) return;
         const trail = next[p.deviceId] || [];
         const last = trail[trail.length - 1];
         if (!last || last.latitude !== p.latitude || last.longitude !== p.longitude) {

@@ -65,3 +65,16 @@ jobs:
             XMart Track Android app, build ${{ github.run_number }} from ${{ github.sha }}.
             Download XMartTrack.apk below and install it on your phone.
           files: mobile/XMartTrack.apk
+
+      # every build is also kept as its own version, so an older APK can be installed again
+      - name: Keep this build as a version
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-v${{ github.run_number }}
+          name: XMart Track Android v${{ github.run_number }}
+          prerelease: false
+          make_latest: false
+          body: |
+            XMart Track Android app, build ${{ github.run_number }} from ${{ github.sha }}.
+            Older version kept for downgrading: install XMartTrack.apk over the current app.
+          files: mobile/XMartTrack.apk

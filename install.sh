@@ -34,7 +34,7 @@ while [ $# -gt 0 ]; do
     --domain) DOMAIN="$2"; shift 2 ;;
     --email) EMAIL="$2"; shift 2 ;;
     --admin-password) ADMIN_PASSWORD="$2"; shift 2 ;;
-    --branch) BRANCH="$2"; shift 2 ;;
+    --branch|--version) BRANCH="$2"; shift 2 ;; # a branch or a version tag such as v1.3.0
     --no-ssl) SSL=0; shift ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
@@ -92,7 +92,7 @@ git config --global --get-all safe.directory 2>/dev/null | grep -qx "$SRC_DIR" \
 if [ -d "$SRC_DIR/.git" ]; then
   chown -R root:root "$SRC_DIR"
   git -C "$SRC_DIR" fetch --depth 1 origin "$BRANCH"
-  git -C "$SRC_DIR" reset --hard "origin/$BRANCH"
+  git -C "$SRC_DIR" reset --hard FETCH_HEAD
 else
   rm -rf "$SRC_DIR"
   git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$SRC_DIR"
