@@ -196,6 +196,10 @@ if [ "$FIRST_INSTALL" -eq 0 ]; then
   mysql -u root xmarttrack -e "UPDATE tc_notifications SET notificators=REPLACE(REPLACE(notificators, ',firebase', ''), 'firebase,', '') WHERE notificators LIKE '%firebase%';" 2>/dev/null || true
 fi
 set_config notificator.types "$NOTIFICATORS"
+# keep the public address in step with --domain on every run (also when the domain changes)
+if [ -n "$DOMAIN" ]; then
+  if [ "$SSL" -eq 1 ]; then set_config web.url "https://$DOMAIN"; else set_config web.url "http://$DOMAIN"; fi
+fi
 set_config geocoder.format '%f'
 set_config geocoder.cacheSize '20000'
 set_config processing.copyAttributes.enable 'true'
@@ -251,6 +255,11 @@ curl -fs -o /dev/null http://127.0.0.1:8082/ || die "Server did not start. Check
 
 # ---------------------------------------------------------------- nginx + ssl
 log "Configuring web server (nginx)"
+PORT443_OWNER="$(ss -Hltnp 'sport = :443' 2>/dev/null | grep -o 'users:(("[^"]*"' | head -1 | cut -d'"' -f2)"
+if [ -n "$PORT443_OWNER" ] && [ "$PORT443_OWNER" != "nginx" ]; then
+  warn "Port 443 (HTTPS) is used by '$PORT443_OWNER', not nginx: the HTTPS site will not open."
+  warn "Move '$PORT443_OWNER' to another port (or stop it), then run this installer again."
+fi
 SERVER_NAMES="${DOMAIN:-_}"
 [ -n "$DOMAIN" ] && SERVER_NAMES="$DOMAIN www.$DOMAIN"
 cat > /etc/nginx/sites-available/xmart-track <<NGINX
