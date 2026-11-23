@@ -13,7 +13,7 @@ curl -fsSL https://raw.githubusercontent.com/xmarthost/XMart-Track/xmart-web-ui/
 | `v1.1.0` | `290ad42` | 21 Nov 13:08 | Version that was live when tracking was confirmed working (21 Nov 13:56, moving 49 km/h). |
 | `v1.2.0` | `f5f7ff4` | 21 Nov 13:30 | v1.1.0 + tracker time read as UTC (5-hour shift fix). |
 | `v1.3.0` | `da36571` | 22 Nov 12:12 | Original GT06 replies restored, Firebase off, queue protection, G19S voltage. |
-| `v1.4.0` | this commit | 23 Nov | Green line only from real GPS fixes while driving (web + app); versioned APKs; installer `--version`. |
+| `v1.4.0` | `c972b84` | 23 Nov | Green line only from real GPS fixes while driving (web + app); versioned APKs; installer `--version`. |
 
 ## Android app
 
