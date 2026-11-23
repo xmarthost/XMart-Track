@@ -39,13 +39,7 @@ const { reducer, actions } = createSlice({
         300;
       action.payload.forEach((position) => {
         state.positions[position.deviceId] = position;
-        // only real GPS fixes while driving (no fix without satellites, no jump while parked)
-        const trailPoint =
-          position.valid !== false &&
-          (position.attributes?.sat ?? 1) > 0 &&
-          (position.speed > 2 || position.attributes?.motion === true);
         if (liveRoutes !== 'none') {
-          if (!trailPoint) return;
           const route = state.history[position.deviceId] || [];
           const last = route.at(-1);
           if (!last || last[0] !== position.longitude || last[1] !== position.latitude) {

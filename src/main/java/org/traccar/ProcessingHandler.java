@@ -19,8 +19,6 @@ import com.google.inject.Injector;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.traccar.config.Config;
 import org.traccar.database.BufferingManager;
 import org.traccar.database.NotificationManager;
@@ -75,8 +73,6 @@ import java.util.stream.Stream;
 @Singleton
 @ChannelHandler.Sharable
 public class ProcessingHandler extends ChannelInboundHandlerAdapter implements BufferingManager.Callback {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(ProcessingHandler.class);
 
     private final CacheManager cacheManager;
     private final NotificationManager notificationManager;
@@ -195,22 +191,9 @@ public class ProcessingHandler extends ChannelInboundHandlerAdapter implements B
         });
     }
 
-    // A failing event handler or notification must never stop this device's position queue:
-    // the error is logged and the position is still finished, so the next one is processed.
     private void processEventHandlers(ChannelHandlerContext ctx, Position position) {
-        for (BaseEventHandler handler : eventHandlers) {
-            try {
-                handler.analyzePosition(position, (event) -> {
-                    try {
-                        notificationManager.updateEvents(Map.of(event, position));
-                    } catch (Throwable error) {
-                        LOGGER.warn("Event {} processing failed", event.getType(), error);
-                    }
-                });
-            } catch (Throwable error) {
-                LOGGER.warn("Event handler {} failed", handler.getClass().getSimpleName(), error);
-            }
-        }
+        eventHandlers.forEach(handler -> handler.analyzePosition(
+                position, (event) -> notificationManager.updateEvents(Map.of(event, position))));
         finishedProcessing(ctx, position, false);
     }
 

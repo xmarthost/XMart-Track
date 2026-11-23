@@ -22,10 +22,8 @@ export const carImages = {
 export const getState = (device, position) => {
   if (!device || device.status === 'unknown') return 'inactive';
   if (device.status === 'offline') return 'offline';
-  // "moving" only from a recent GPS fix: an old fix (tracker not reporting) is not shown as driving
-  const fresh = position?.fixTime && Date.now() - new Date(position.fixTime).getTime() < 3 * 60 * 1000;
   const motion = position?.attributes?.motion;
-  if (fresh && (motion === true || (motion === undefined && position?.speed > 1.5))) return 'moving';
+  if (motion === true || (motion === undefined && position?.speed > 1.5)) return 'moving';
   return 'static';
 };
 
@@ -36,7 +34,7 @@ export const duration = (ms) => {
   const minutes = Math.floor(ms / 60000);
   const days = Math.floor(minutes / 1440);
   const hours = Math.floor((minutes % 1440) / 60);
-  if (days > 0) return `${days}d ${hours}h ${minutes % 60}m`;
+  if (days > 0) return `${days}d ${hours}h`;
   if (hours > 0) return `${hours}h ${minutes % 60}m`;
   return `${minutes % 60}m`;
 };

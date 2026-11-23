@@ -3,7 +3,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getBase, logout } from '../../api/server';
-import { unregisterPush } from '../../state/push';
 import { useApp } from '../../state/AppState';
 import { colors } from '../../state/status';
 
@@ -15,7 +14,6 @@ export default function Me() {
     ['dashboard', 'Fleet overview', () => router.push('/overview')],
     ['assessment', 'Reports', () => router.push('/reports')],
     ['sms', 'SMS & WhatsApp alerts', () => router.push('/alert-settings')],
-    ['notifications-active', 'Notification setup (app closed)', () => router.push('/notification-setup')],
     ['devices', 'Devices (add by IMEI)', () => router.push('/devices')],
     ['hexagon', 'Geofences', () => router.push('/geofences')],
     ['security', 'Account & password', () => router.push('/account')],
@@ -49,7 +47,6 @@ export default function Me() {
           <Pressable
             style={styles.item}
             onPress={async () => {
-              await unregisterPush(user);
               await logout();
               setUser(null);
               router.replace('/login');

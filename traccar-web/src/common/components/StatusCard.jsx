@@ -245,8 +245,7 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
           value: attributes.driverUniqueId ? (
             <DriverValue driverUniqueId={attributes.driverUniqueId} />
           ) : (
-            // no driver card: show the vehicle name (it follows the name edited above)
-            device?.contact || device?.name || '--'
+            device?.contact || '--'
           ),
         },
         {
@@ -315,16 +314,11 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
           title: t('xmSatellites'),
           value: attributes.sat ?? '--',
         },
-        // the tracker's own backup battery: only shown when the tracker reports it
-        ...(attributes.batteryLevel != null
-          ? [
-              {
-                icon: <BatteryStdIcon />,
-                title: t('xmBackupBattery'),
-                value: formatPercentage(attributes.batteryLevel),
-              },
-            ]
-          : []),
+        {
+          icon: <BatteryStdIcon />,
+          title: t('xmBackupBattery'),
+          value: attributes.batteryLevel != null ? formatPercentage(attributes.batteryLevel) : '--',
+        },
       ]
     : [];
 

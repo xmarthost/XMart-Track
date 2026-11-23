@@ -15,7 +15,6 @@ const alertTypes = [
   { key: 'offline', types: ['deviceOffline'], label: 'Device offline' },
 ];
 const WHATSAPP = 'xmwhatsapp';
-const PUSH = 'firebase';
 const split = (value) =>
   (value || '')
     .split(/[,;\s]+/)
@@ -30,8 +29,8 @@ export default function AlertSettings() {
   const [whatsapp, setWhatsapp] = useState(split(user?.attributes?.['xm.whatsappNumbers']).join(', '));
   const [notifications, setNotifications] = useState([]);
   const [enabled, setEnabled] = useState({});
-  const [channels, setChannels] = useState({ sms: true, whatsapp: true, push: true });
-  const [available, setAvailable] = useState({ sms: true, whatsapp: true, push: false });
+  const [channels, setChannels] = useState({ sms: true, whatsapp: true });
+  const [available, setAvailable] = useState({ sms: true, whatsapp: true });
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(null);
 
@@ -40,11 +39,11 @@ export default function AlertSettings() {
       .then(([items, notificatorItems]) => {
         const types = notificatorItems.map((it) => it.type);
         setNotifications(items);
-        setAvailable({ sms: types.includes('sms'), whatsapp: types.includes(WHATSAPP), push: types.includes(PUSH) });
+        setAvailable({ sms: types.includes('sms'), whatsapp: types.includes(WHATSAPP) });
         const state = {};
         alertTypes.forEach((alert) => {
           state[alert.key] = alert.types.every((type) =>
-            items.some((n) => n.type === type && ['sms', WHATSAPP, PUSH].some((c) => notificatorList(n).includes(c))),
+            items.some((n) => n.type === type && (notificatorList(n).includes('sms') || notificatorList(n).includes(WHATSAPP))),
           );
         });
         setEnabled(state);
@@ -53,7 +52,6 @@ export default function AlertSettings() {
           setChannels({
             sms: managed.some((n) => notificatorList(n).includes('sms')),
             whatsapp: managed.some((n) => notificatorList(n).includes(WHATSAPP)),
-            push: managed.some((n) => notificatorList(n).includes(PUSH)) || !managed.length,
           });
         }
       })
@@ -74,7 +72,6 @@ export default function AlertSettings() {
       const wanted = ['web'];
       if (channels.sms && available.sms) wanted.push('sms');
       if (channels.whatsapp && available.whatsapp) wanted.push(WHATSAPP);
-      if (channels.push && available.push) wanted.push(PUSH);
       const notificators = wanted.join(',');
       const updated = [...notifications];
       for (const alert of alertTypes) {
@@ -119,28 +116,6 @@ export default function AlertSettings() {
 
   return (
     <ScrollView style={ui.screen} contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">
-      <Card title="Push notifications" subtitle="Alerts on this phone with sound, even when the app is closed.">
-        <SwitchRow
-          label="Send alerts to the app"
-          value={channels.push && available.push}
-          disabled={!available.push}
-          onValueChange={(value) => setChannels({ ...channels, push: value })}
-        />
-        {!available.push && (
-          <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>
-            Not enabled on the server yet: run the server update after adding the Firebase key.
-          </Text>
-        )}
-        <Button
-          title="Send push test"
-          icon="notifications-active"
-          outline
-          style={{ marginTop: 10 }}
-          disabled={!available.push}
-          loading={testing === PUSH}
-          onPress={() => test(PUSH)}
-        />
-      </Card>
       <Card title="WhatsApp" subtitle="Alerts with a Google Maps link through XMart Sender.">
         <SwitchRow
           label="Send alerts on WhatsApp"

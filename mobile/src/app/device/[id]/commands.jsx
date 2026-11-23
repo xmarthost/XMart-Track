@@ -82,12 +82,7 @@ const groups = [
       { label: 'Status', icon: 'info-outline', data: 'status#' },
       { label: 'Location', icon: 'my-location', data: 'DW' },
       { label: 'Parameters', icon: 'tune', data: 'PARAM#' },
-      {
-        label: 'Tracker SMS time zone (GMT+5)',
-        icon: 'schedule',
-        data: 'GMT,E,5,0#',
-        note: 'Only changes the time written in the tracker\'s own SMS. The server always reads tracker time as UTC.',
-      },
+      { label: 'Set time zone (GMT+5)', icon: 'schedule', data: 'GMT,E,5,0#' },
     ],
   },
   {
