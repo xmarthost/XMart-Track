@@ -67,6 +67,30 @@ ss -Htn "sport = :5023" 2>/dev/null | sed 's/^/    /' | head -10
 section "5. FIREWALL"
 ufw status 2>/dev/null | sed 's/^/  /' || info "ufw not available"
 
+section "5b. NETWORK / DNS (why a site can time out)"
+PUB4=$(curl -4 -s --max-time 8 https://api.ipify.org || true)
+info "Public IPv4 of this VPS : ${PUB4:-unknown}"
+info "Local addresses         : $(ip -o addr show scope global 2>/dev/null | awk '{print $4}' | tr '\n' ' ')"
+names=$(grep -hoE 'server_name[^;]*' /etc/nginx/sites-enabled/* 2>/dev/null | sed 's/server_name//' | tr ' ' '\n' | grep -v '^_\?$' | sort -u)
+info "Domains in nginx        : $(echo $names)"
+for d in $names; do
+  ip4=$(getent ahostsv4 "$d" | awk 'NR==1{print $1}')
+  if [ -z "$ip4" ]; then bad "DNS $d -> nothing (no A record)"
+  elif [ "$ip4" = "$PUB4" ]; then ok "DNS $d -> $ip4 (this VPS)"
+  else bad "DNS $d -> $ip4, NOT this VPS ($PUB4)  (wrong A record or Cloudflare proxy on)"; fi
+done
+info "SSL certificates (certbot):"
+certbot certificates 2>/dev/null | grep -E "Certificate Name|Domains|Expiry" | sed 's/^/    /' || info "    certbot not installed"
+info "iptables INPUT policy and rules:"
+iptables -S INPUT 2>/dev/null | head -25 | sed 's/^/    /'
+info "nftables drop/reject rules (count): $(nft list ruleset 2>/dev/null | grep -cE 'drop|reject')"
+for p in 80 443 5023; do
+  if timeout 5 bash -c "</dev/tcp/${PUB4:-127.0.0.1}/$p" 2>/dev/null; then ok "port $p answers on the public IP (from this VPS)"
+  else bad "port $p does NOT answer on the public IP ${PUB4} (firewall?)"; fi
+done
+info "Note: a firewall in the VPS provider's control panel cannot be seen from here. If everything above is OK"
+info "but the site still times out from outside, open ports 80, 443 and 5023 (TCP) in the provider's panel."
+
 section "6. WEB / API"
 code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://127.0.0.1:8082/api/server)
 [ "$code" = 200 ] && ok "local API http://127.0.0.1:8082/api/server -> $code" || bad "local API -> $code"
