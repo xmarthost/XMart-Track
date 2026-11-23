@@ -102,7 +102,18 @@ else
 fi
 
 log "Building server (this takes a few minutes the first time)"
-(cd "$SRC_DIR" && chmod +x gradlew && ./gradlew assemble --no-daemon -q)
+# The Java and web builds need about 3 GB of memory; small VPS plans get a swap file so the build
+# is not killed ("Gradle build daemon disappeared unexpectedly").
+MEM_MB=$(( ($(awk '/MemTotal/ {print $2}' /proc/meminfo) + $(awk '/SwapTotal/ {print $2}' /proc/meminfo)) / 1024 ))
+if [ "$MEM_MB" -lt 3500 ] && [ ! -f /swapfile ]; then
+  log "Low memory (${MEM_MB} MB RAM+swap): adding a 3 GB swap file for the build"
+  if fallocate -l 3G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=3072 status=none; then
+    chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile \
+      && { grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab; } \
+      || warn "Could not turn on swap; the build may run out of memory"
+  fi
+fi
+(cd "$SRC_DIR" && chmod +x gradlew && ./gradlew assemble --no-daemon -q -Dorg.gradle.jvmargs=-Xmx768m)
 
 log "Building web interface"
 (cd "$SRC_DIR/traccar-web" && npm ci --no-audit --no-fund --loglevel=error && npx vite build)
