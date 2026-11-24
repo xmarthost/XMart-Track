@@ -41,6 +41,8 @@ let currentToken = null;
 // Asks for permission, gets this phone's Firebase token and stores it on the user, where the
 // server's Firebase notificator reads it. Returns the updated user (or null when nothing changed).
 export async function registerPush(user) {
+  // iPhone push needs an Apple developer account and APNs key in Firebase; Android only for now
+  if (Platform.OS !== 'android') return null;
   try {
     await ensureChannel();
     let { status } = await Notifications.getPermissionsAsync();

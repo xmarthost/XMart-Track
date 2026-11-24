@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, ScrollView, Text, View } from 'react-native';
+import { Modal, Platform, ScrollView, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
@@ -43,6 +43,7 @@ export default function UpdatePrompt() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (Platform.OS !== 'android') return; // the APK update is for Android; iPhone installs a new IPA
     fetchUpdate()
       .then((info) => {
         const build = Number(info?.versionCode || 0);

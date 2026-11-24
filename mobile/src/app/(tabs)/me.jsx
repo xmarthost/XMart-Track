@@ -61,7 +61,7 @@ export default function Me() {
           </Pressable>
         </View>
         <Text style={{ textAlign: 'center', color: colors.muted, marginTop: 16, marginBottom: 8 }}>
-          XMart Track · Version {Constants.expoConfig?.android?.versionCode || '-'}
+          XMart Track · Version {Constants.expoConfig?.android?.versionCode || Constants.expoConfig?.ios?.buildNumber || '-'}
         </Text>
       </ScrollView>
     </SafeAreaView>

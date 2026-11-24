@@ -14,6 +14,15 @@ module.exports = {
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
     backgroundColor: '#F4F8FD',
+    ios: {
+      bundleIdentifier: 'site.xmarttrack.app',
+      buildNumber: String(process.env.APP_VERSION_CODE || 1),
+      supportsTablet: false,
+      infoPlist: {
+        NSLocationWhenInUseUsageDescription: 'Shows your position on the map next to your vehicles.',
+        ITSAppUsesNonExemptEncryption: false,
+      },
+    },
     android: {
       package: 'site.xmarttrack.app',
       versionCode: Number(process.env.APP_VERSION_CODE || 1),

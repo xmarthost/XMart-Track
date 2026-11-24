@@ -1,0 +1,96 @@
+name: iOS IPA (unsigned)
+
+# Builds the same app for iPhone. The IPA is unsigned (no Apple developer account yet): install it with
+# Sideloadly or AltStore, which sign it with your own Apple ID. Published on the "ios-latest" release.
+on:
+  push:
+    branches: [main, xmart-web-ui]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Use the newest Xcode on the runner
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate iOS project
+        env:
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          APP_VERSION_CODE: ${{ github.run_number }}
+        run: npx expo prebuild --platform ios --no-install
+
+      - name: Install pods
+        working-directory: mobile/ios
+        run: pod install
+
+      - name: Build app (no code signing)
+        working-directory: mobile/ios
+        env:
+          APP_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          WORKSPACE=$(ls -d *.xcworkspace | head -1)
+          SCHEME="${WORKSPACE%.xcworkspace}"
+          set -o pipefail
+          xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build | tail -100
+
+      - name: Package IPA
+        run: |
+          APP=$(ls -d ios/build/Build/Products/Release-iphoneos/*.app | head -1)
+          rm -rf Payload && mkdir Payload && cp -R "$APP" Payload/
+          zip -qry XMartTrack.ipa Payload
+          ls -la XMartTrack.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XMartTrack-ipa
+          path: mobile/XMartTrack.ipa
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-latest
+          name: XMart Track iPhone (latest)
+          prerelease: false
+          make_latest: false
+          body: |
+            XMart Track for iPhone, build ${{ github.run_number }} from ${{ github.sha }}.
+            Unsigned IPA: install XMartTrack.ipa with Sideloadly or AltStore using your Apple ID.
+          files: mobile/XMartTrack.ipa
+
+      - name: Keep this build as a version
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-v${{ github.run_number }}
+          name: XMart Track iPhone v${{ github.run_number }}
+          prerelease: false
+          make_latest: false
+          body: |
+            XMart Track for iPhone, build ${{ github.run_number }} from ${{ github.sha }}.
+          files: mobile/XMartTrack.ipa
