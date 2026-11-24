@@ -1,0 +1,48 @@
+name: Server release
+
+# Every server/web update gets its own release (server-v<number>) so earlier versions stay on record
+# and can be installed again with the installer's --version option.
+on:
+  push:
+    branches: [xmart-web-ui]
+    paths:
+      - 'src/**'
+      - 'traccar-web/**'
+      - 'install.sh'
+      - 'scripts/**'
+      - '.github/workflows/server-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Release notes
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          {
+            echo "## What's new"
+            jq -r '.commits[]?.message | split("\n")[0] | "- " + .' "$GITHUB_EVENT_PATH" || true
+            [ "$(jq '.commits | length' "$GITHUB_EVENT_PATH" 2>/dev/null || echo 0)" -gt 0 ] || git log -1 --format='- %s'
+            echo
+            echo "## Install this version on a VPS"
+            echo '```bash'
+            echo "curl -fsSL https://raw.githubusercontent.com/xmarthost/XMart-Track/xmart-web-ui/install.sh | bash -s -- --version $SHA --domain YOUR-DOMAIN"
+            echo '```'
+            echo "The database, admin account and settings are kept."
+          } > notes.md
+          cat notes.md
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: server-v${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: XMart Track server v${{ github.run_number }}
+          make_latest: false
+          body_path: notes.md
