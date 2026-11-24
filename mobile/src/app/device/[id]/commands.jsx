@@ -163,7 +163,7 @@ export default function Commands() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScrollView contentContainerStyle={{ padding: 12, gap: 12, paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ padding: 12, gap: 12, paddingBottom: 32 + insets.bottom }}>
         <View style={styles.deviceRow}>
           <View style={[styles.dot, { backgroundColor: device?.status === 'online' ? colors.moving : colors.inactive }]} />
           <Text style={styles.subtitle}>{`${device?.name || ''} • ${device?.status === 'online' ? 'Online' : 'Offline'}`}</Text>

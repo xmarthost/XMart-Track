@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, getBase } from '../api/server';
 import { useApp } from '../state/AppState';
 import { colors, formatDateTime } from '../state/status';
@@ -75,6 +76,7 @@ const tests = [
 ];
 
 export default function Diagnostics() {
+  const insets = useSafeAreaInsets();
   const { user, connected, devices, positions } = useApp();
   const { chosen, active, source, notice } = useMapState();
   const logs = useSyncExternalStore(subscribeLogs, getLogs);
@@ -169,7 +171,7 @@ export default function Diagnostics() {
       data={logs}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={headerView}
-      contentContainerStyle={{ paddingBottom: 32 }}
+      contentContainerStyle={{ paddingBottom: 32 + insets.bottom }}
       ListEmptyComponent={<Text style={styles.empty}>No log entries yet</Text>}
       renderItem={({ item }) => (
         <View style={styles.logRow}>

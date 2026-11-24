@@ -5,7 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { api, apiJson, getBase } from '../api/server';
 import { useApp } from '../state/AppState';
 import { colors, formatDateTime } from '../state/status';
-import { Button, Card, Chips, Code, Empty, Field, SwitchRow, ui } from '../components/ui';
+import { Button, Card, Chips, Code, Empty, Field, SwitchRow, ui, useContentStyle } from '../components/ui';
 
 const models = [
   { value: 'WanWay G19S (Wired)', label: 'WanWay G19S', port: 5023 },
@@ -37,6 +37,7 @@ const toEditing = (device) => ({
 });
 
 export default function Devices() {
+  const contentStyle = useContentStyle();
   const { devices, refresh } = useApp();
   const { id: openId } = useLocalSearchParams();
   const [editing, setEditing] = useState(null);
@@ -135,7 +136,7 @@ export default function Devices() {
 
   if (editing) {
     return (
-      <ScrollView style={ui.screen} contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">
+      <ScrollView style={ui.screen} contentContainerStyle={contentStyle} keyboardShouldPersistTaps="handled">
         <Card title={editing.id ? 'Edit device' : 'Add device'}>
           <Field label="Vehicle name" value={editing.name} onChangeText={(name) => setEditing({ ...editing, name })} placeholder="LEA-19-961" />
           <Field
@@ -188,7 +189,7 @@ export default function Devices() {
   }
 
   return (
-    <ScrollView style={ui.screen} contentContainerStyle={ui.content}>
+    <ScrollView style={ui.screen} contentContainerStyle={contentStyle}>
       {added && (
         <>
           <Card title={`${added.name} added`} subtitle="Now send the setup SMS to the tracker." />

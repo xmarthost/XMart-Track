@@ -5,9 +5,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { api } from '../api/server';
 import { useApp } from '../state/AppState';
 import { colors, getState, kmh, since } from '../state/status';
-import { Card, ui } from '../components/ui';
+import { Card, ui, useContentStyle } from '../components/ui';
 
 export default function Overview() {
+  const contentStyle = useContentStyle();
   const { devices, positions, setSelectedId } = useApp();
   const list = Object.values(devices).sort((a, b) => a.name.localeCompare(b.name));
   const [today, setToday] = useState({});
@@ -37,7 +38,7 @@ export default function Overview() {
   ];
 
   return (
-    <ScrollView style={ui.screen} contentContainerStyle={ui.content}>
+    <ScrollView style={ui.screen} contentContainerStyle={contentStyle}>
       <View style={{ flexDirection: 'row', gap: 10 }}>
         {tiles.map(([label, value, color, icon]) => (
           <View key={label} style={[ui.card, { flex: 1, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 4 }]}>

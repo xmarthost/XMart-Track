@@ -3,7 +3,7 @@ import { Alert, ScrollView, Text } from 'react-native';
 import { api, apiJson } from '../api/server';
 import { useApp } from '../state/AppState';
 import { colors } from '../state/status';
-import { Button, Card, Field, SwitchRow, ui } from '../components/ui';
+import { Button, Card, Field, SwitchRow, ui, useContentStyle } from '../components/ui';
 
 // Same rules as the web page "SMS & WhatsApp", so both stay in sync.
 const alertTypes = [
@@ -25,6 +25,7 @@ const notificatorList = (n) => (n.notificators || '').split(',');
 const isManaged = (n) => Boolean(n.attributes?.xmSms);
 
 export default function AlertSettings() {
+  const contentStyle = useContentStyle();
   const { user, setUser } = useApp();
   const [sms, setSms] = useState(split(user?.phone).join(', '));
   const [whatsapp, setWhatsapp] = useState(split(user?.attributes?.['xm.whatsappNumbers']).join(', '));
@@ -118,7 +119,7 @@ export default function AlertSettings() {
   };
 
   return (
-    <ScrollView style={ui.screen} contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">
+    <ScrollView style={ui.screen} contentContainerStyle={contentStyle} keyboardShouldPersistTaps="handled">
       <Card title="Push notifications" subtitle="Alerts on this phone with sound, even when the app is closed.">
         <SwitchRow
           label="Send alerts to the app"

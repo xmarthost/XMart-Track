@@ -5,7 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { api } from '../api/server';
 import { useApp } from '../state/AppState';
 import { colors, duration, formatDateTime, kmh } from '../state/status';
-import { Button, Card, Chips, Empty, ui } from '../components/ui';
+import { Button, Card, Chips, Empty, ui, useContentStyle } from '../components/ui';
 
 const periods = [
   { value: 'today', label: 'Today' },
@@ -29,6 +29,7 @@ const range = (period) => {
 const km = (meters) => `${((meters || 0) / 1000).toFixed(1)} km`;
 
 export default function Reports() {
+  const contentStyle = useContentStyle();
   const { devices, selectedId } = useApp();
   const list = Object.values(devices).sort((a, b) => a.name.localeCompare(b.name));
   const [deviceId, setDeviceId] = useState(selectedId || list[0]?.id);
@@ -61,7 +62,7 @@ export default function Reports() {
     : [];
 
   return (
-    <ScrollView style={ui.screen} contentContainerStyle={ui.content}>
+    <ScrollView style={ui.screen} contentContainerStyle={contentStyle}>
       <Card>
         <Text style={ui.label}>Vehicle</Text>
         <Chips options={list.map((d) => ({ value: d.id, label: d.name }))} value={deviceId} onChange={setDeviceId} />

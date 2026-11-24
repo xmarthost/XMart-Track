@@ -7,7 +7,7 @@ import Constants from 'expo-constants';
 import { colors } from '../state/status';
 import { apiJson } from '../api/server';
 import { notificationSetupStatus } from '../state/push';
-import { Button, Card, ui } from '../components/ui';
+import { Button, Card, ui, useContentStyle } from '../components/ui';
 
 const PACKAGE = Constants.expoConfig?.android?.package || 'site.xmarttrack.app';
 
@@ -23,6 +23,7 @@ const open = async (action, params) => {
 // Steps that let alerts arrive with sound while the app is closed (Android cannot turn these on
 // for an app; each button opens the right settings page).
 export default function NotificationSetup() {
+  const contentStyle = useContentStyle();
   const [status, setStatus] = useState({ permission: false, battery: false });
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
@@ -107,7 +108,7 @@ export default function NotificationSetup() {
   );
 
   return (
-    <ScrollView style={ui.screen} contentContainerStyle={ui.content}>
+    <ScrollView style={ui.screen} contentContainerStyle={contentStyle}>
       <Text style={{ color: colors.muted, textAlign: 'center' }}>
         So that ACC, alarm and geofence alerts ring even when XMart Track is closed.
       </Text>

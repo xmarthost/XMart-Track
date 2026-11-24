@@ -1,5 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../state/status';
 
 export const Card = ({ title, subtitle, children, style }) => (
@@ -120,3 +121,9 @@ export const ui = StyleSheet.create({
   rowTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
   rowSub: { fontSize: 13, color: colors.muted, marginTop: 2 },
 });
+
+// Screen content padding that keeps the last buttons above the phone's navigation bar.
+export function useContentStyle(extra = 24) {
+  const insets = useSafeAreaInsets();
+  return [ui.content, { paddingBottom: extra + Math.max(insets.bottom, 16) }];
+}

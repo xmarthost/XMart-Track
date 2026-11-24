@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Alert, ScrollView } from 'react-native';
 import { apiJson } from '../api/server';
 import { useApp } from '../state/AppState';
-import { Button, Card, Field, ui } from '../components/ui';
+import { Button, Card, Field, ui, useContentStyle } from '../components/ui';
 
 export default function Account() {
+  const contentStyle = useContentStyle();
   const { user, setUser } = useApp();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -41,7 +42,7 @@ export default function Account() {
   };
 
   return (
-    <ScrollView style={ui.screen} contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">
+    <ScrollView style={ui.screen} contentContainerStyle={contentStyle} keyboardShouldPersistTaps="handled">
       <Card title="Profile">
         <Field label="Name" value={name} onChangeText={setName} />
         <Field label="Login (email)" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
