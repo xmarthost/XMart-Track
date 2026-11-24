@@ -49,6 +49,16 @@ jobs:
       - name: Rename APK
         run: cp android/app/build/outputs/apk/release/app-release.apk XMartTrack.apk
 
+      # what the app shows in its "New version released" window (commit titles of this push, no links)
+      - name: Write update.json
+        env:
+          BUILD: ${{ github.run_number }}
+        run: |
+          jq -r '[.commits[]?.message | split("\n")[0]] | .[]' "$GITHUB_EVENT_PATH" > notes.txt || true
+          [ -s notes.txt ] || git log -1 --format=%s > notes.txt
+          jq -Rn --argjson build "$BUILD" '{versionCode: $build, notes: [inputs | select(length > 0)]}' notes.txt > update.json
+          cat update.json
+
       - uses: actions/upload-artifact@v4
         with:
           name: XMartTrack-apk
@@ -64,7 +74,9 @@ jobs:
           body: |
             XMart Track Android app, build ${{ github.run_number }} from ${{ github.sha }}.
             Download XMartTrack.apk below and install it on your phone.
-          files: mobile/XMartTrack.apk
+          files: |
+            mobile/XMartTrack.apk
+            mobile/update.json
 
       # every build is also kept as its own version, so an older APK can be installed again
       - name: Keep this build as a version

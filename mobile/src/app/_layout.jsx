@@ -9,6 +9,7 @@ import { AppProvider, useApp } from '../state/AppState';
 import { restoreSession } from '../api/server';
 import { colors } from '../state/status';
 import EventBanner from '../components/EventBanner';
+import UpdatePrompt from '../components/UpdatePrompt';
 
 installLogCapture();
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -64,6 +65,7 @@ function Gate() {
         <Stack.Screen name="overview" options={headerOptions('Fleet overview')} />
       </Stack>
       <EventBanner />
+      {ready && <UpdatePrompt />}
       {!ready && (
         <View style={StyleSheet.absoluteFill}>
           <Welcome />
