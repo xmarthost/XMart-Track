@@ -38,15 +38,20 @@ import jakarta.ws.rs.core.Form;
 import java.io.StringReader;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Sends notifications to WhatsApp through the XMart Sender API (xmartsender.com).
- * Configured from the web interface (server attributes); recipients are the numbers
- * in the user attribute "xm.whatsappNumbers".
+ * Configured from the web interface (server attributes). Recipients: the numbers set on the vehicle
+ * (device attribute "xm.whatsappNumbers") receive that vehicle's alerts; a vehicle without its own
+ * numbers uses the account numbers (user attribute "xm.whatsappNumbers"). With the device attribute
+ * "xm.whatsappAlsoAccount" the account numbers receive that vehicle's alerts as well.
  */
 @Singleton
 public class NotificatorXmartWhatsapp extends Notificator {
@@ -57,6 +62,8 @@ public class NotificatorXmartWhatsapp extends Notificator {
     public static final String KEY_SECRET = "xm.wa.secret";
     public static final String KEY_ACCOUNT = "xm.wa.account";
     public static final String KEY_NUMBERS = "xm.whatsappNumbers";
+    public static final String KEY_ALSO_ACCOUNT = "xm.whatsappAlsoAccount";
+    private static final long DUPLICATE_WINDOW_MS = 10 * 60 * 1000;
     public static final String DEFAULT_URL = "https://xmartsender.com/api/send/whatsapp";
 
     private static final Map<String, String> TITLES = Map.ofEntries(
@@ -75,6 +82,8 @@ public class NotificatorXmartWhatsapp extends Notificator {
 
     private final Client client;
     private final CacheManager cacheManager;
+    // a vehicle shared by several users would otherwise send its numbers one message per user
+    private final Map<String, Long> recentlySent = new ConcurrentHashMap<>();
 
     @Inject
     public NotificatorXmartWhatsapp(
@@ -93,6 +102,27 @@ public class NotificatorXmartWhatsapp extends Notificator {
                 .filter(number -> !number.isEmpty())
                 .distinct()
                 .toList();
+    }
+
+    static List<String> recipients(Device device, User user) {
+        List<String> deviceNumbers = device != null ? parseNumbers(device.getString(KEY_NUMBERS)) : List.of();
+        List<String> accountNumbers = parseNumbers(user.getString(KEY_NUMBERS));
+        if (deviceNumbers.isEmpty()) {
+            return accountNumbers;
+        }
+        Set<String> all = new LinkedHashSet<>(deviceNumbers);
+        if (device.getBoolean(KEY_ALSO_ACCOUNT)) {
+            all.addAll(accountNumbers);
+        }
+        return List.copyOf(all);
+    }
+
+    private boolean firstSend(Event event, String number) {
+        long now = System.currentTimeMillis();
+        recentlySent.values().removeIf(time -> now - time > DUPLICATE_WINDOW_MS);
+        String key = event.getDeviceId() + "|" + event.getType() + "|"
+                + (event.getEventTime() != null ? event.getEventTime().getTime() : 0) + "|" + number;
+        return recentlySent.putIfAbsent(key, now) == null;
     }
 
     static String titleFor(Event event) {
@@ -143,7 +173,11 @@ public class NotificatorXmartWhatsapp extends Notificator {
     @Override
     public CompletableFuture<Void> sendAsync(
             User user, NotificationMessage shortMessage, Event event, Position position) {
-        List<String> numbers = parseNumbers(user.getString(KEY_NUMBERS));
+        Device device = cacheManager.getObject(Device.class, event.getDeviceId());
+        boolean test = "test".equals(event.getType());
+        List<String> numbers = recipients(device, user).stream()
+                .filter(number -> test || firstSend(event, number))
+                .toList();
         if (numbers.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }

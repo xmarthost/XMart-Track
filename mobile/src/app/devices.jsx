@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { api, apiJson, getBase } from '../api/server';
 import { useApp } from '../state/AppState';
 import { colors, formatDateTime } from '../state/status';
-import { Button, Card, Chips, Code, Empty, Field, ui } from '../components/ui';
+import { Button, Card, Chips, Code, Empty, Field, SwitchRow, ui } from '../components/ui';
 
 const models = [
   { value: 'WanWay G19S (Wired)', label: 'WanWay G19S', port: 5023 },
@@ -19,10 +20,25 @@ const apns = [
 ];
 const baseHost = () => getBase().replace(/^\w+:\/\//, '').split(/[/:]/)[0];
 const isIp = (host) => /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
-const blank = { id: null, name: '', uniqueId: '', phone: '', model: models[0].value };
+const blank = { id: null, name: '', uniqueId: '', phone: '', model: models[0].value, attributes: {} };
+const WA_NUMBERS = 'xm.whatsappNumbers';
+const WA_ALSO_ACCOUNT = 'xm.whatsappAlsoAccount';
+const splitNumbers = (value) =>
+  (value || '')
+    .split(/[,;\s]+/)
+    .map((it) => it.replace(/[^0-9]/g, ''))
+    .filter(Boolean);
+const toEditing = (device) => ({
+  ...blank,
+  ...device,
+  phone: device.phone || '',
+  attributes: device.attributes || {},
+  whatsapp: splitNumbers(device.attributes?.[WA_NUMBERS]).join(', '),
+});
 
 export default function Devices() {
   const { devices, refresh } = useApp();
+  const { id: openId } = useLocalSearchParams();
   const [editing, setEditing] = useState(null);
   const [host, setHost] = useState('');
   const [apn, setApn] = useState(apns[0].value);
@@ -34,6 +50,13 @@ export default function Devices() {
       .then((server) => setHost(server.attributes?.['xm.deviceHost'] || baseHost()))
       .catch(() => setHost(baseHost()));
   }, []);
+
+  // opened from the vehicle card (pencil): edit that vehicle directly
+  useEffect(() => {
+    const device = openId && devices[Number(openId)];
+    if (device) setEditing(toEditing(device));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId]);
 
   const list = Object.values(devices).sort((a, b) => a.name.localeCompare(b.name));
   const model = models.find((m) => m.value === (added || editing)?.model) || models[0];
@@ -51,7 +74,14 @@ export default function Devices() {
     }
     setSaving(true);
     try {
-      const body = { ...editing, name: editing.name.trim(), uniqueId: imei, phone: editing.phone.trim() || null };
+      const attributes = { ...(editing.attributes || {}) };
+      const numbers = splitNumbers(editing.whatsapp).join(',');
+      if (numbers) attributes[WA_NUMBERS] = numbers;
+      else delete attributes[WA_NUMBERS];
+      if (numbers && attributes[WA_ALSO_ACCOUNT]) attributes[WA_ALSO_ACCOUNT] = true;
+      else delete attributes[WA_ALSO_ACCOUNT];
+      const { whatsapp, ...rest } = editing;
+      const body = { ...rest, attributes, name: editing.name.trim(), uniqueId: imei, phone: editing.phone.trim() || null };
       if (!body.id) delete body.id;
       const saved = await apiJson(editing.id ? `api/devices/${editing.id}` : 'api/devices', editing.id ? 'PUT' : 'POST', body);
       await refresh().catch(() => {});
@@ -125,6 +155,30 @@ export default function Devices() {
           <Text style={[ui.label, { marginTop: 12 }]}>Model</Text>
           <Chips options={models} value={editing.model || models[0].value} onChange={(value) => setEditing({ ...editing, model: value })} />
         </Card>
+        <Card
+          title="WhatsApp alerts for this vehicle"
+          subtitle="Alerts of this vehicle go to these numbers only (e.g. the family member who drives it). Leave empty to use the account numbers from SMS & WhatsApp alerts."
+        >
+          <Field
+            label="WhatsApp numbers (with country code)"
+            value={editing.whatsapp || ''}
+            onChangeText={(whatsapp) => setEditing({ ...editing, whatsapp })}
+            keyboardType="phone-pad"
+            placeholder="923001234567, 923331234567"
+          />
+          {splitNumbers(editing.whatsapp).length > 0 && (
+            <SwitchRow
+              label="Also send to the account numbers"
+              value={Boolean(editing.attributes?.[WA_ALSO_ACCOUNT])}
+              onValueChange={(on) =>
+                setEditing({ ...editing, attributes: { ...editing.attributes, [WA_ALSO_ACCOUNT]: on } })
+              }
+            />
+          )}
+          <Text style={[ui.help, { marginTop: 8 }]}>
+            Which alerts are sent (ACC, overspeed, geofence, …) is chosen in Me → SMS & WhatsApp alerts.
+          </Text>
+        </Card>
         {editing.id && setupCard(editing)}
         <Button title="Save" icon="check" loading={saving} onPress={save} />
         <Button title="Cancel" outline color={colors.muted} onPress={() => setEditing(null)} />
@@ -142,15 +196,18 @@ export default function Devices() {
           <Button title="Done" outline onPress={() => setAdded(null)} />
         </>
       )}
-      <Button title="Add device by IMEI" icon="add-circle-outline" onPress={() => setEditing({ ...blank })} />
+      <Button title="Add device by IMEI" icon="add-circle-outline" onPress={() => setEditing({ ...blank, whatsapp: '' })} />
       <Card>
         {list.length === 0 && <Empty text="No devices yet" />}
         {list.map((device) => (
-          <Pressable key={device.id} style={ui.row} onPress={() => setEditing({ ...blank, ...device, phone: device.phone || '' })}>
+          <Pressable key={device.id} style={ui.row} onPress={() => setEditing(toEditing(device))}>
             <MaterialIcons name="directions-car" size={26} color={device.status === 'online' ? colors.moving : colors.inactive} />
             <View style={{ flex: 1 }}>
               <Text style={ui.rowTitle}>{device.name}</Text>
               <Text style={ui.rowSub}>{`${device.uniqueId}${device.phone ? ` • ${device.phone}` : ''}`}</Text>
+              {device.attributes?.[WA_NUMBERS] ? (
+                <Text style={ui.rowSub}>{`WhatsApp: ${splitNumbers(device.attributes[WA_NUMBERS]).join(', ')}`}</Text>
+              ) : null}
               <Text style={ui.rowSub}>{`${device.status} • ${formatDateTime(device.lastUpdate)}`}</Text>
             </View>
             <MaterialIcons name="edit" size={20} color="#94A3B8" />
