@@ -1,5 +1,7 @@
 # Features removed on 2026-11-23 (owner's request)
 
+> 2026-11-24: everything below was restored again (v1.6.0, see VERSIONS.md). Kept as the list of what v1.5.0 had removed.
+
 The server, web and Android app were set back to commit `290ad42` (21 Nov 2026, 13:08 PKT), the version that
 was live when tracking was confirmed working. The live green line was also removed. Everything below is
 kept in git and can be added back on request (`git cherry-pick <commit>` or `git checkout <commit> -- <file>`).

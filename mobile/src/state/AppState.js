@@ -1,9 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { api, socketUrl } from '../api/server';
 import { logInfo, logWarn } from './log';
+import { handleNotificationTaps, promptSetupOnce, registerPush } from './push';
 
 const AppContext = createContext(null);
 const TRAIL_LENGTH = 300;
+
+// speed is in knots; 2 knots = 3.7 km/h
+const isTrailPoint = (p) =>
+  p.valid !== false && (p.attributes?.sat ?? 1) > 0 && (p.speed > 2 || p.attributes?.motion === true);
 
 export function AppProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -26,6 +31,9 @@ export function AppProvider({ children }) {
     setTrails((previous) => {
       const next = { ...previous };
       items.forEach((p) => {
+        // Only real GPS fixes while driving extend the line: a fix without satellites (valid false)
+        // or a jump while parked would draw a stray line on the map.
+        if (!isTrailPoint(p)) return;
         const trail = next[p.deviceId] || [];
         const last = trail[trail.length - 1];
         if (!last || last.latitude !== p.latitude || last.longitude !== p.longitude) {
@@ -100,7 +108,26 @@ export function AppProvider({ children }) {
       clearInterval(timer);
       socketRef.current?.close();
     };
-  }, [user, refresh, applyPositions]);
+    // reconnect only when a different user signs in, not when the user's attributes change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, refresh, applyPositions]);
+
+  // push notifications: register this phone once per sign-in, open the vehicle on tap
+  useEffect(() => {
+    if (!user) return undefined;
+    // push only when the server has Firebase switched on
+    api('api/notifications/notificators')
+      .then((list) => {
+        if (!list.some((n) => n.type === 'firebase')) return;
+        registerPush(user).then((updated) => {
+          if (updated) setUser(updated);
+          promptSetupOnce();
+        });
+      })
+      .catch(() => {});
+    return handleNotificationTaps(setSelectedId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const value = {
     user,

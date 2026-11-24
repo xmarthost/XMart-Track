@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import dayjs from 'dayjs';
 import { Chip, Fab, IconButton, Paper, Switch, Toolbar, Tooltip, Typography } from '@mui/material';
 import NavigationIcon from '@mui/icons-material/Navigation';
 import AddressValue from '../common/components/AddressValue';
@@ -8,17 +9,23 @@ import useDeviceExtras from '../common/util/useDeviceExtras';
 import { makeStyles } from 'tss-react/mui';
 import HistoryIcon from '@mui/icons-material/History';
 import MapView, { map } from '../map/core/MapView';
+import MapRoutePath from '../map/MapRoutePath';
 import MapPositionMarkers from '../map/MapPositionMarkers';
 import MapGeofence from '../map/MapGeofence';
 import MapScale from '../map/MapScale';
 import MapOverlay from '../map/overlay/MapOverlay';
 import BackIcon from '../common/components/BackIcon';
 import { useTranslation } from '../common/components/LocalizationProvider';
+import { useAsyncTask } from '../reactHelper';
+import fetchOrThrow from '../common/util/fetchOrThrow';
 import { toMapCoordinates } from '../map/core/mapUtil';
 import { formatTime } from '../common/util/formatter';
 import { useAttributePreference } from '../common/util/preferences';
 import { speedFromKnots, speedUnitString } from '../common/util/converter';
 import { getDeviceState, sinceNow, stateColors } from '../common/util/xmartStatus';
+
+const TRAIL_HOURS = 1;
+const TRAIL_LIMIT = 2000;
 
 const useStyles = makeStyles()((theme) => ({
   root: {
@@ -75,7 +82,33 @@ const TrackingPage = () => {
   const position = useSelector((state) => state.session.positions[deviceId]);
   const speedUnit = useAttributePreference('speedUnit', 'kmh');
 
+  const [trail, setTrail] = useState([]);
   const [follow, setFollow] = useState(true);
+
+  useAsyncTask(
+    async ({ signal }) => {
+      const query = new URLSearchParams({
+        deviceId,
+        from: dayjs().subtract(TRAIL_HOURS, 'hour').toISOString(),
+        to: dayjs().toISOString(),
+      });
+      const response = await fetchOrThrow(`api/positions?${query.toString()}`, { signal });
+      setTrail((await response.json()).slice(-TRAIL_LIMIT));
+    },
+    [deviceId],
+  );
+
+  useEffect(() => {
+    if (position) {
+      setTrail((previous) => {
+        const last = previous.at(-1);
+        if (last && last.id === position.id) {
+          return previous;
+        }
+        return [...previous, position].slice(-TRAIL_LIMIT);
+      });
+    }
+  }, [position]);
 
   useEffect(() => {
     if (follow && position) {
@@ -94,6 +127,7 @@ const TrackingPage = () => {
       <MapView>
         <MapOverlay />
         <MapGeofence />
+        <MapRoutePath positions={trail} />
         {position && <MapPositionMarkers positions={[position]} showStatus />}
       </MapView>
       <MapScale />

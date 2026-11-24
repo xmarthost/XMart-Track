@@ -22,3 +22,11 @@ curl -fsSL https://raw.githubusercontent.com/xmarthost/XMart-Track/xmart-web-ui/
 From now on every APK build is also published as its own release `android-v<build>` (next to
 `android-latest`), so an older app can be installed again. Builds before this change are in the
 GitHub Actions runs (artifact `XMartTrack-apk`, kept for 90 days).
+
+## 2026-11-24: back to the latest version
+
+The tracking problem was the tracker itself (fixed by taking it out and resetting it). Server, web and app
+are back on v1.4.0's code, Firebase push is switched on again by the installer when
+`/root/firebase-service-account.json` is on the server, and the later installer fixes (swap on small VPS,
+`--domain` change, port 443 warning) and the diagnose network section are kept. Called v1.6.0.
+The two updates rolled back on 21 Nov (`583f9fb`, `8dcfcba`, see ROLLBACKS.md) are still out.

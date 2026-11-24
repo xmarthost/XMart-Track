@@ -36,6 +36,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.traccar.config.Config;
 import org.traccar.config.Keys;
+import org.traccar.helper.model.UserUtil;
+import org.traccar.model.Device;
 import org.traccar.model.Event;
 import org.traccar.model.ObjectOperation;
 import org.traccar.model.Position;
@@ -54,11 +56,13 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
@@ -103,14 +107,20 @@ public class NotificatorFirebase extends Notificator {
                 Arrays.asList(user.getString("notificationTokens").split("[, ]")));
         registrationTokens.sort(Comparator.comparing(token -> token.length() == 22));
 
+        // vehicle alerts must ring right away: high priority (delivered in doze) on the app's
+        // "xm_alerts" channel, which the XMart Track app creates with sound and vibration
         var androidConfig = AndroidConfig.builder()
-                .setNotification(AndroidNotification.builder().setSound("default").build());
+                .setPriority(AndroidConfig.Priority.HIGH)
+                .setNotification(AndroidNotification.builder()
+                        .setSound("default")
+                        .setChannelId("xm_alerts")
+                        .setDefaultVibrateTimings(true)
+                        .build());
 
         var apnsConfig = ApnsConfig.builder()
                 .setAps(Aps.builder().setSound("default").build());
 
         if (message.priority()) {
-            androidConfig.setPriority(AndroidConfig.Priority.HIGH);
             apnsConfig.putHeader("apns-priority", "10");
         }
 
@@ -126,9 +136,22 @@ public class NotificatorFirebase extends Notificator {
         }
 
         if (!"data".equals(mode)) {
+            String title = message.subject();
+            String body = message.digest();
+            Device device = event != null ? cacheManager.getObject(Device.class, event.getDeviceId()) : null;
+            if (device != null) {
+                // short, readable phone notification: vehicle, what happened, time, place
+                SimpleDateFormat time = new SimpleDateFormat("HH:mm", Locale.US);
+                time.setTimeZone(UserUtil.getTimezone(cacheManager.getServer(), user));
+                title = "🚘 " + device.getName();
+                body = NotificatorXmartWhatsapp.titleFor(event) + " • " + time.format(event.getEventTime());
+                if (position != null && position.getAddress() != null && !position.getAddress().isBlank()) {
+                    body += "\n📍 " + position.getAddress();
+                }
+            }
             messageBuilder.setNotification(com.google.firebase.messaging.Notification.builder()
-                    .setTitle(message.subject())
-                    .setBody(message.digest())
+                    .setTitle(title)
+                    .setBody(body)
                     .build());
         }
 

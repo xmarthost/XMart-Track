@@ -60,6 +60,8 @@ const TrackMap = forwardRef(function TrackMap(
         compass={false}
         attribution
         attributionPosition={{ bottom: 6, left: 6 }}
+        // north-up like tracking apps: map labels would turn upside down when rotated
+        touchRotate={false}
         touchPitch={false}
         onPress={onPress}
         onWillStartLoadingMap={() => logInfo('map', `loading ${active}`)}

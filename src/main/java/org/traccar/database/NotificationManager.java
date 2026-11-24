@@ -132,7 +132,11 @@ public class NotificationManager {
 
         if (!notifications.isEmpty()) {
             if (position != null && position.getAddress() == null && geocodeOnRequest && geocoder != null) {
-                position.setAddress(geocoder.getAddress(position.getLatitude(), position.getLongitude(), null));
+                try {
+                    position.setAddress(geocoder.getAddress(position.getLatitude(), position.getLongitude(), null));
+                } catch (RuntimeException error) {
+                    LOGGER.warn("Address lookup for notification failed", error);
+                }
             }
 
             notifications.forEach(notification -> {
@@ -142,11 +146,17 @@ public class NotificationManager {
                         return;
                     }
                     for (String notificator : notification.getNotificatorsTypes()) {
-                        notificatorManager.getNotificator(notificator).sendAsync(notification, user, event, position)
-                                .exceptionally(throwable -> {
-                                    LOGGER.warn("Notification failed", throwable);
-                                    return null;
-                                });
+                        // one broken notificator (e.g. push setup) must not stop the others or the tracker
+                        try {
+                            notificatorManager.getNotificator(notificator)
+                                    .sendAsync(notification, user, event, position)
+                                    .exceptionally(throwable -> {
+                                        LOGGER.warn("Notification failed ({})", notificator, throwable);
+                                        return null;
+                                    });
+                        } catch (Throwable error) {
+                            LOGGER.warn("Notification failed ({})", notificator, error);
+                        }
                     }
                 });
             });
