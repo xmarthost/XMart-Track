@@ -67,17 +67,22 @@ export const isGoogle = (id) => findStyle(id).group === 'Google';
 export const sampleTile = (template) =>
   template.replace('{z}', '12').replace('{x}', '2894').replace('{y}', '1665');
 
-// Live traffic (green / orange / red roads like Google Maps) drawn into the Google tiles.
-// `stamp` changes every few minutes so the phone loads fresh traffic instead of cached tiles.
-const withTraffic = (urls, stamp) =>
-  urls.map((url) =>
-    url.includes('google.com/vt') ? `${url.replace(/lyrs=([a-z]+)/, 'lyrs=$1,traffic')}&ts=${stamp}` : url,
+// Live traffic as its own see-through layer on top of any map (Google or free): Google's
+// "roads + traffic" overlay without labels, drawn thin (4x tiles in a 256 px slot) and light, so the
+// vehicle's green trail stays clearly visible above it. `stamp` changes every few minutes so the
+// phone loads fresh traffic instead of cached tiles.
+export const TRAFFIC_OPACITY = 0.55;
+export const trafficTiles = (stamp) =>
+  [0, 1, 2, 3].map(
+    (n) =>
+      `https://mt${n}.google.com/vt/lyrs=h,traffic&hl=en&gl=pk&x={x}&y={y}&z={z}&scale=4` +
+      `&apistyle=s.t%3A0%7Cs.e%3Al%7Cp.v%3Aoff&ts=${stamp}`,
   );
 
 const cache = {};
-export function buildStyle(id, tiles, traffic = false, stamp = 0) {
+export function buildStyle(id, tiles) {
   const style = findStyle(id);
-  const urls = traffic ? withTraffic(tiles || style.tiles, stamp) : tiles || style.tiles;
+  const urls = tiles || style.tiles;
   const cacheKey = `${id}|${urls[0]}`;
   if (cache[cacheKey]) return cache[cacheKey];
   cache[cacheKey] = {

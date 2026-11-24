@@ -1,10 +1,10 @@
 import { forwardRef, useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Camera, GeoJSONSource, Images, Layer, Map } from '@maplibre/maplibre-react-native';
+import { Camera, GeoJSONSource, Images, Layer, Map, RasterSource } from '@maplibre/maplibre-react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { carImages } from '../state/status';
 import { logInfo, logWarn } from '../state/log';
-import { buildStyle } from './mapStyles';
+import { TRAFFIC_OPACITY, buildStyle, trafficTiles } from './mapStyles';
 import { dismissMapNotice, initMapStyle, useMapState } from './mapState';
 
 const carIcons = {
@@ -35,7 +35,7 @@ export const lineGeoJSON = (points) => ({
 
 // Map drawn by MapLibre with Google or free raster tiles, car markers and an optional green trail.
 const TrackMap = forwardRef(function TrackMap(
-  { style, initialViewState, cars = [], trail, onCarPress, onPress, children },
+  { style, initialViewState, cars = [], trail, onCarPress, onPress, onRegionChange, children },
   cameraRef,
 ) {
   const { active, tiles, notice, traffic, trafficStamp } = useMapState();
@@ -54,7 +54,7 @@ const TrackMap = forwardRef(function TrackMap(
     <View style={style}>
       <Map
         style={StyleSheet.absoluteFill}
-        mapStyle={buildStyle(active, tiles, traffic, trafficStamp)}
+        mapStyle={buildStyle(active, tiles)}
         androidView="texture"
         logo={false}
         compass={false}
@@ -64,6 +64,8 @@ const TrackMap = forwardRef(function TrackMap(
         touchRotate={false}
         touchPitch={false}
         onPress={onPress}
+        onRegionIsChanging={onRegionChange}
+        onRegionDidChange={onRegionChange}
         onWillStartLoadingMap={() => logInfo('map', `loading ${active}`)}
         onDidFinishLoadingStyle={() => logInfo('map', `style ready ${active}`)}
         onDidFinishLoadingMap={() => logInfo('map', `map loaded ${active}`)}
@@ -85,6 +87,12 @@ const TrackMap = forwardRef(function TrackMap(
       >
         <Camera ref={cameraRef} initialViewState={initialViewState} />
         <Images images={carIcons} />
+        {/* live traffic: thin, light layer under the green trail and the cars */}
+        {traffic && (
+          <RasterSource key={`traffic-${trafficStamp}`} id="traffic" tiles={trafficTiles(trafficStamp)} tileSize={256} maxzoom={20}>
+            <Layer id="traffic-layer" type="raster" paint={{ 'raster-opacity': TRAFFIC_OPACITY, 'raster-fade-duration': 0 }} />
+          </RasterSource>
+        )}
         {/* always mounted before the cars so the line stays under the car icons */}
         <GeoJSONSource id="trail" data={trail && trail.length > 1 ? lineGeoJSON(trail) : emptyCollection}>
           <Layer

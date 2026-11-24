@@ -124,13 +124,12 @@ export function chooseMapStyle(id) {
 
 export const dismissMapNotice = () => emit({ notice: null });
 
-// Live traffic works on the Google maps; a free map is switched to Google Road while traffic is on.
+// Live traffic is a see-through layer over the chosen map (Google or free).
 const TRAFFIC_REFRESH_MS = 3 * 60 * 1000;
 let trafficTimer = null;
 export function setTraffic(on) {
   clearInterval(trafficTimer);
   if (on) {
-    if (findStyle(state.active).group !== 'Google') chooseMapStyle(DEFAULT_STYLE);
     emit({ traffic: true, trafficStamp: Date.now(), notice: 'Live traffic on: green = clear, orange / red = slow or closed' });
     trafficTimer = setInterval(() => emit({ trafficStamp: Date.now() }), TRAFFIC_REFRESH_MS);
   } else {
