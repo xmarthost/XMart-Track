@@ -1,6 +1,7 @@
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import Constants from 'expo-constants';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getBase, logout } from '../../api/server';
 import { unregisterPush } from '../../state/push';
@@ -59,6 +60,9 @@ export default function Me() {
             <Text style={[styles.itemText, { color: colors.offline }]}>Log out</Text>
           </Pressable>
         </View>
+        <Text style={{ textAlign: 'center', color: colors.muted, marginTop: 16, marginBottom: 8 }}>
+          XMart Track · Version {Constants.expoConfig?.android?.versionCode || '-'}
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
