@@ -9,7 +9,7 @@ import MapButtons from '../../components/MapButtons';
 import PullToRefresh from '../../components/PullToRefresh';
 import TrackMap from '../../map/TrackMap';
 import { findStyle, mapStyles } from '../../map/mapStyles';
-import { chooseMapStyle, useMapState } from '../../map/mapState';
+import { chooseMapStyle, setTraffic, useMapState } from '../../map/mapState';
 
 const tabs = [
   { key: 'all', label: 'All' },
@@ -24,7 +24,7 @@ export default function Monitor() {
   const [view, setView] = useState('list');
   const [tab, setTab] = useState('all');
   const [keyword, setKeyword] = useState('');
-  const { chosen: mapStyle, active: activeStyle } = useMapState();
+  const { chosen: mapStyle, active: activeStyle, traffic } = useMapState();
   const [mapTypeOpen, setMapTypeOpen] = useState(false);
   const [sheetHeight, setSheetHeight] = useState(0);
   const [areaHeight, setAreaHeight] = useState(0);
@@ -234,7 +234,8 @@ export default function Monitor() {
             canSwitch={withPositions.length > 1}
             onFitAll={fitAll}
             onCenter={() => centerOn(selectedPosition || positions[withPositions[0]?.id])}
-            position={selectedPosition}
+            traffic={traffic}
+            onTraffic={() => setTraffic(!traffic)}
           />
           {selected && (
             <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -242,7 +243,6 @@ export default function Monitor() {
                 device={selected}
                 position={selectedPosition}
                 onClose={() => setSelectedId(null)}
-                onTrack={() => centerOn(selectedPosition)}
                 onHeight={setSheetHeight}
               />
             </View>

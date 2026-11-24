@@ -38,7 +38,7 @@ const TrackMap = forwardRef(function TrackMap(
   { style, initialViewState, cars = [], trail, onCarPress, onPress, children },
   cameraRef,
 ) {
-  const { active, tiles, notice } = useMapState();
+  const { active, tiles, notice, traffic, trafficStamp } = useMapState();
   const renderedRef = useRef(false);
   const lastFailRef = useRef(0);
 
@@ -54,7 +54,7 @@ const TrackMap = forwardRef(function TrackMap(
     <View style={style}>
       <Map
         style={StyleSheet.absoluteFill}
-        mapStyle={buildStyle(active, tiles)}
+        mapStyle={buildStyle(active, tiles, traffic, trafficStamp)}
         androidView="texture"
         logo={false}
         compass={false}

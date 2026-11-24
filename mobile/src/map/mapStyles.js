@@ -67,10 +67,17 @@ export const isGoogle = (id) => findStyle(id).group === 'Google';
 export const sampleTile = (template) =>
   template.replace('{z}', '12').replace('{x}', '2894').replace('{y}', '1665');
 
+// Live traffic (green / orange / red roads like Google Maps) drawn into the Google tiles.
+// `stamp` changes every few minutes so the phone loads fresh traffic instead of cached tiles.
+const withTraffic = (urls, stamp) =>
+  urls.map((url) =>
+    url.includes('google.com/vt') ? `${url.replace(/lyrs=([a-z]+)/, 'lyrs=$1,traffic')}&ts=${stamp}` : url,
+  );
+
 const cache = {};
-export function buildStyle(id, tiles) {
+export function buildStyle(id, tiles, traffic = false, stamp = 0) {
   const style = findStyle(id);
-  const urls = tiles || style.tiles;
+  const urls = traffic ? withTraffic(tiles || style.tiles, stamp) : tiles || style.tiles;
   const cacheKey = `${id}|${urls[0]}`;
   if (cache[cacheKey]) return cache[cacheKey];
   cache[cacheKey] = {

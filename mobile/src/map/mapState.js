@@ -11,7 +11,15 @@ const googleKey = Constants.expoConfig?.extra?.googleKey;
 
 // Shared map state: the style the user picked (`chosen`), the style shown (`active`), its tile
 // URLs, where the tiles come from (`source`) and a notice when a fallback was needed.
-let state = { chosen: DEFAULT_STYLE, active: DEFAULT_STYLE, tiles: null, source: null, notice: null };
+let state = {
+  chosen: DEFAULT_STYLE,
+  active: DEFAULT_STYLE,
+  tiles: null,
+  source: null,
+  notice: null,
+  traffic: false,
+  trafficStamp: 0,
+};
 const listeners = new Set();
 let loaded = false;
 
@@ -115,6 +123,21 @@ export function chooseMapStyle(id) {
 }
 
 export const dismissMapNotice = () => emit({ notice: null });
+
+// Live traffic works on the Google maps; a free map is switched to Google Road while traffic is on.
+const TRAFFIC_REFRESH_MS = 3 * 60 * 1000;
+let trafficTimer = null;
+export function setTraffic(on) {
+  clearInterval(trafficTimer);
+  if (on) {
+    if (findStyle(state.active).group !== 'Google') chooseMapStyle(DEFAULT_STYLE);
+    emit({ traffic: true, trafficStamp: Date.now(), notice: 'Live traffic on: green = clear, orange / red = slow or closed' });
+    trafficTimer = setInterval(() => emit({ trafficStamp: Date.now() }), TRAFFIC_REFRESH_MS);
+  } else {
+    emit({ traffic: false, notice: null });
+  }
+  logInfo('map', `traffic ${on ? 'on' : 'off'}`);
+}
 export const getMapState = () => state;
 
 export function useMapState() {

@@ -1,4 +1,4 @@
-import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../state/status';
@@ -13,7 +13,7 @@ const Button = ({ icon, family = 'm', onPress, active, disabled }) => {
 };
 
 // Fixed map buttons: left = refresh, geofences (web), map type, previous/next vehicle;
-// right = fit all, satellite, alerts, street view, center vehicle.
+// right = fit all, satellite, alerts, live traffic, center vehicle.
 export default function MapButtons({
   onRefresh,
   onMapType,
@@ -24,7 +24,8 @@ export default function MapButtons({
   canSwitch,
   onFitAll,
   onCenter,
-  position,
+  traffic,
+  onTraffic,
 }) {
   return (
     <>
@@ -46,16 +47,7 @@ export default function MapButtons({
         <Button icon="zoom-out-map" onPress={onFitAll} />
         <Button icon="satellite-alt" onPress={onSatellite} active={satellite} />
         <Button icon="chat-bubble-outline" onPress={() => router.push('/(tabs)/alerts')} />
-        <Button
-          icon="man"
-          disabled={!position}
-          onPress={() =>
-            position &&
-            Linking.openURL(
-              `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${position.latitude},${position.longitude}`,
-            )
-          }
-        />
+        <Button icon="traffic" onPress={onTraffic} active={traffic} />
         <Button icon="gps-fixed" onPress={onCenter} />
       </View>
     </>
