@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { api, apiJson } from '../api/server';
@@ -15,7 +16,7 @@ import {
   toBase64,
 } from '../state/geofenceSchedule';
 import TrackMap from '../map/TrackMap';
-import { Button, Card, Chips, Empty, Field, SwitchRow, ui } from '../components/ui';
+import { Button, Card, Chips, Empty, Field, SwitchRow, ui, useContentStyle } from '../components/ui';
 
 const RED = '#DC2626';
 const radii = [100, 200, 500, 1000, 3000].map((r) => ({ value: r, label: r < 1000 ? `${r} m` : `${r / 1000} km` }));
@@ -71,6 +72,12 @@ const toWkt = (shape) =>
     ? `CIRCLE (${shape.center[1].toFixed(6)} ${shape.center[0].toFixed(6)}, ${Math.round(shape.radius)})`
     : `POLYGON ((${[...shape.points, shape.points[0]].map(([lon, lat]) => `${lat.toFixed(6)} ${lon.toFixed(6)}`).join(', ')}))`;
 
+// MapLibre zoom: the world is 512 px wide at zoom 0
+const metersPerPixel = (lat, zoom) => (40075016.686 * Math.cos((lat * Math.PI) / 180)) / (512 * 2 ** zoom);
+const zoomForRadius = (lat, radius, circlePx) =>
+  Math.log2((40075016.686 * Math.cos((lat * Math.PI) / 180) * (circlePx / 2)) / (512 * radius));
+const radiusText = (r) => (r < 1000 ? `${Math.round(r)} m` : `${(r / 1000).toFixed(r < 10000 ? 2 : 1)} km`);
+
 const bounds = (points) => {
   const lngs = points.map((p) => p[0]);
   const lats = points.map((p) => p[1]);
@@ -86,6 +93,8 @@ const scheduleOf = (g) => {
 };
 
 export default function Geofences() {
+  const contentStyle = useContentStyle();
+  const insets = useSafeAreaInsets();
   const { devices, positions, selectedId } = useApp();
   const params = useLocalSearchParams();
   const cameraRef = useRef(null);
@@ -97,6 +106,9 @@ export default function Geofences() {
   const [alerts, setAlerts] = useState({ enter: false, exit: false });
   const [notifications, setNotifications] = useState([]);
   const [notificators, setNotificators] = useState([]);
+  const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
+  // the circle geofence is a fixed ring in the middle of the map: pan and zoom the map under it
+  const circlePx = Math.round(Math.min(mapSize.width, mapSize.height) * 0.7);
 
   const preferredDevice = Number(params.deviceId) || selectedId || Number(Object.keys(positions)[0]) || null;
   const deviceList = Object.values(devices).sort((a, b) => a.name.localeCompare(b.name));
@@ -163,15 +175,15 @@ export default function Geofences() {
     [geofences, draft],
   );
 
-  const draftRing = draft ? shapeRing(draft.shape) : null;
+  const draftRing = draft && draft.shape.type === 'polygon' ? shapeRing(draft.shape) : null;
   const draftShape = {
     type: 'FeatureCollection',
     features: draftRing ? [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [draftRing] } }] : [],
   };
   const draftPoints = {
     type: 'FeatureCollection',
-    features: draft
-      ? (draft.shape.type === 'circle' ? (draft.shape.center ? [draft.shape.center] : []) : draft.shape.points).map((p, i) => ({
+    features: draft && draft.shape.type === 'polygon'
+      ? draft.shape.points.map((p, i) => ({
           type: 'Feature',
           properties: { i },
           geometry: { type: 'Point', coordinates: p },
@@ -185,6 +197,21 @@ export default function Geofences() {
     }
   };
 
+  const showCircle = (center, radius) => {
+    if (!center || !circlePx) return;
+    const zoom = Math.min(19, Math.max(3, zoomForRadius(center[1], radius, circlePx)));
+    cameraRef.current?.easeTo({ center, zoom, duration: 400 });
+  };
+
+  // circle: center and radius follow the map under the fixed ring
+  const onRegionChange = (event) => {
+    if (draft?.shape.type !== 'circle' || !circlePx) return;
+    const { center, zoom } = event.nativeEvent || {};
+    if (!center || zoom == null) return;
+    const radius = Math.max(10, (circlePx / 2) * metersPerPixel(center[1], zoom));
+    setDraft((d) => (d && d.shape.type === 'circle' ? { ...d, shape: { ...d.shape, center: [center[0], center[1]], radius } } : d));
+  };
+
   const newDraft = (type) => {
     setChoosingType(false);
     const center = start ? [start.longitude, start.latitude] : null;
@@ -196,7 +223,8 @@ export default function Geofences() {
       schedule: defaultSchedule(),
       calendarId: 0,
     });
-    if (center) cameraRef.current?.easeTo({ center, zoom: 15, duration: 400 });
+    if (center && type === 'circle') showCircle(center, 200);
+    else if (center) cameraRef.current?.easeTo({ center, zoom: 15, duration: 400 });
   };
 
   const editDraft = (g) => {
@@ -211,19 +239,16 @@ export default function Geofences() {
       calendarId: g.calendarId || 0,
       original: g,
     });
-    fit(shapeRing(shape));
+    if (shape.type === 'circle') showCircle(shape.center, shape.radius);
+    else fit(shapeRing(shape));
   };
 
   const onMapPress = (event) => {
-    if (!draft) return;
+    if (!draft || draft.shape.type === 'circle') return;
     const lngLat = event.nativeEvent?.lngLat;
     if (!lngLat) return;
     const point = [lngLat[0], lngLat[1]];
-    setDraft((d) =>
-      d.shape.type === 'circle'
-        ? { ...d, shape: { ...d.shape, center: point } }
-        : { ...d, shape: { ...d.shape, points: [...d.shape.points, point] } },
-    );
+    setDraft((d) => ({ ...d, shape: { ...d.shape, points: [...d.shape.points, point] } }));
   };
 
   const setSchedule = (patch) => setDraft((d) => ({ ...d, schedule: { ...d.schedule, ...patch } }));
@@ -274,7 +299,7 @@ export default function Geofences() {
   const save = async () => {
     const { shape, schedule } = draft;
     if (shape.type === 'circle' && !shape.center) {
-      Alert.alert('Geofence', 'Tap the map to place the circle.');
+      Alert.alert('Geofence', 'Move the map so the red circle covers the area.');
       return;
     }
     if (shape.type === 'polygon' && shape.points.length < 3) {
@@ -377,11 +402,16 @@ export default function Geofences() {
 
   return (
     <View style={ui.screen}>
+      <View
+        style={{ height: draft ? '48%' : '40%' }}
+        onLayout={(e) => setMapSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
+      >
       <TrackMap
         ref={cameraRef}
-        style={{ height: draft ? '46%' : '40%' }}
+        style={StyleSheet.absoluteFill}
         cars={cars}
         onPress={onMapPress}
+        onRegionChange={onRegionChange}
         initialViewState={start ? { center: [start.longitude, start.latitude], zoom: 14 } : { center: [69.3451, 30.3753], zoom: 4.5 }}
       >
         <GeoJSONSource id="geofences" data={saved}>
@@ -408,36 +438,39 @@ export default function Geofences() {
           />
         </GeoJSONSource>
       </TrackMap>
+      {draft?.shape.type === 'circle' && circlePx > 0 && (
+        <View style={styles.ringBox} pointerEvents="none">
+          <View style={[styles.ring, { width: circlePx, height: circlePx, borderRadius: circlePx / 2 }]} />
+          <View style={styles.ringDot} />
+          <Text style={[styles.ringLabel, { top: (mapSize.height - circlePx) / 2 - 26 }]}>
+            {`Radius ${radiusText(draft.shape.radius)}`}
+          </Text>
+        </View>
+      )}
       {draft && (
         <View style={styles.hint} pointerEvents="none">
           <Text style={styles.hintText}>
             {draft.shape.type === 'circle'
-              ? 'Tap the map to move the circle'
+              ? 'Move and zoom the map: the area inside the red circle is the geofence'
               : `Tap the map to add corners (${draft.shape.points.length} added)`}
           </Text>
         </View>
       )}
+      </View>
 
-      <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={contentStyle} keyboardShouldPersistTaps="handled">
         {draft ? (
           <>
             <Card title={`${draft.id ? 'Edit' : 'New'} ${draft.shape.type === 'circle' ? 'circle' : 'polygon'} geofence`}>
               <Field label="Name" value={draft.name} onChangeText={(name) => setDraft({ ...draft, name })} placeholder="Home, Office, School…" />
               {draft.shape.type === 'circle' ? (
                 <>
-                  <Text style={[ui.label, { marginTop: 12 }]}>Radius</Text>
+                  <Text style={[ui.label, { marginTop: 12 }]}>{`Radius: ${radiusText(draft.shape.radius)}`}</Text>
+                  <Text style={ui.help}>Zoom in for a smaller area, zoom out for a bigger one, or pick a size:</Text>
                   <Chips
                     options={radii}
-                    value={draft.shape.radius}
-                    onChange={(radius) => setDraft({ ...draft, shape: { ...draft.shape, radius } })}
-                  />
-                  <Field
-                    label="Or radius in meters"
-                    value={String(draft.shape.radius)}
-                    keyboardType="number-pad"
-                    onChangeText={(v) =>
-                      setDraft({ ...draft, shape: { ...draft.shape, radius: Math.max(20, Number(v.replace(/\D/g, '')) || 0) } })
-                    }
+                    value={radii.find((r) => Math.abs(r.value - draft.shape.radius) < r.value * 0.03)?.value}
+                    onChange={(radius) => showCircle(draft.shape.center, radius)}
                   />
                   {start && (
                     <Button
@@ -447,8 +480,7 @@ export default function Geofences() {
                       style={{ marginTop: 10 }}
                       onPress={() => {
                         const p = positions[draft.deviceIds[0]] || start;
-                        setDraft({ ...draft, shape: { ...draft.shape, center: [p.longitude, p.latitude] } });
-                        cameraRef.current?.easeTo({ center: [p.longitude, p.latitude], zoom: 15, duration: 400 });
+                        showCircle([p.longitude, p.latitude], draft.shape.radius);
                       }}
                     />
                   )}
@@ -582,7 +614,7 @@ export default function Geofences() {
 
       <Modal transparent animationType="fade" visible={choosingType} onRequestClose={() => setChoosingType(false)}>
         <Pressable style={styles.backdrop} onPress={() => setChoosingType(false)}>
-          <View style={styles.sheet}>
+          <View style={[styles.sheet, { paddingBottom: 24 + insets.bottom }]}>
             <Text style={styles.sheetTitle}>Choose geofence type</Text>
             {[
               {
@@ -619,14 +651,30 @@ export default function Geofences() {
 const styles = StyleSheet.create({
   hint: {
     position: 'absolute',
-    top: 10,
-    alignSelf: 'center',
+    bottom: 10,
+    left: 12,
+    right: 12,
+    alignItems: 'center',
     backgroundColor: 'rgba(15,23,42,0.8)',
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 16,
   },
-  hintText: { color: '#FFF', fontWeight: '600', fontSize: 13 },
+  hintText: { color: '#FFF', fontWeight: '600', fontSize: 12, textAlign: 'center' },
+  ringBox: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  ring: { borderWidth: 3, borderColor: RED, backgroundColor: 'rgba(220,38,38,0.14)' },
+  ringDot: { position: 'absolute', width: 10, height: 10, borderRadius: 5, backgroundColor: RED, borderWidth: 2, borderColor: '#FFF' },
+  ringLabel: {
+    position: 'absolute',
+    backgroundColor: RED,
+    color: '#FFF',
+    fontWeight: '800',
+    fontSize: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
   row2: { flexDirection: 'row', gap: 10 },
   badge: { fontSize: 11, fontWeight: '700', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
   icon: { paddingHorizontal: 4 },
