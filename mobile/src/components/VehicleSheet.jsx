@@ -8,7 +8,7 @@ import { logWarn } from '../state/log';
 import { colors, duration, formatDateTime, getState, kmh, since } from '../state/status';
 
 const actionColors = {
-  tracking: '#2563EB',
+  geofence: '#DC2626',
   playback: '#10B981',
   alerts: '#F59E0B',
   commands: '#007080',
@@ -146,7 +146,7 @@ function useAccSince(deviceId, ignition) {
   return value;
 }
 
-export default function VehicleSheet({ device, position, onClose, onTrack, onHeight }) {
+export default function VehicleSheet({ device, position, onClose, onHeight }) {
   const [expanded, setExpanded] = useState(false);
   const attributes = position?.attributes || {};
   const state = getState(device, position);
@@ -162,7 +162,7 @@ export default function VehicleSheet({ device, position, onClose, onTrack, onHei
   }[state];
 
   const actions = [
-    { key: 'tracking', label: 'Tracking', icon: 'place', onPress: onTrack },
+    { key: 'geofence', label: 'Geofence', icon: 'fence', onPress: () => router.push(`/geofences?deviceId=${device.id}`) },
     {
       key: 'playback',
       label: 'Playback',
@@ -228,6 +228,9 @@ export default function VehicleSheet({ device, position, onClose, onTrack, onHei
             <Text style={styles.name} numberOfLines={1}>
               {device.name}
             </Text>
+            <Pressable onPress={() => router.push(`/devices?id=${device.id}`)} hitSlop={10} style={{ marginRight: 18 }}>
+              <MaterialIcons name="edit" size={22} color={colors.teal} />
+            </Pressable>
             <Pressable onPress={onClose} hitSlop={10}>
               <MaterialIcons name="close" size={24} color={colors.muted} />
             </Pressable>

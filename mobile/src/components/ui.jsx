@@ -10,8 +10,8 @@ export const Card = ({ title, subtitle, children, style }) => (
   </View>
 );
 
-export const Field = ({ label, help, ...props }) => (
-  <View style={{ marginTop: 10 }}>
+export const Field = ({ label, help, style, ...props }) => (
+  <View style={[{ marginTop: 10 }, style]}>
     <Text style={ui.label}>{label}</Text>
     <TextInput style={ui.input} placeholderTextColor="#94A3B8" {...props} />
     {help ? <Text style={ui.help}>{help}</Text> : null}
@@ -54,7 +54,7 @@ export const Button = ({ title, onPress, icon, color = colors.teal, outline, loa
 export const Chips = ({ options, value, onChange }) => (
   <View style={ui.chips}>
     {options.map((option) => {
-      const active = option.value === value;
+      const active = Array.isArray(value) ? value.includes(option.value) : option.value === value;
       return (
         <Pressable
           key={String(option.value)}
