@@ -8,7 +8,13 @@ const TRAIL_LENGTH = 300;
 
 // speed is in knots; 2 knots = 3.7 km/h
 const isTrailPoint = (p) =>
-  p.valid !== false && (p.attributes?.sat ?? 1) > 0 && (p.speed > 2 || p.attributes?.motion === true);
+  p.valid !== false &&
+  p.attributes?.ignition !== false &&
+  (p.attributes?.sat ?? 1) > 0 &&
+  (p.speed > 2 || p.attributes?.motion === true);
+
+// the green line is removed this long after ACC OFF; a new ACC ON always starts a new line
+const TRAIL_CLEAR_AFTER_OFF_MS = 12000;
 
 export function AppProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -19,8 +25,33 @@ export function AppProvider({ children }) {
   const [selectedId, setSelectedId] = useState(null);
   const [connected, setConnected] = useState(false);
   const socketRef = useRef(null);
+  const ignitionRef = useRef({});
+  const clearTimersRef = useRef({});
 
   const applyPositions = useCallback((items) => {
+    // ACC changes: OFF -> clear the line after a few seconds, ON -> start a new line (new journey)
+    const newJourney = new Set();
+    items.forEach((p) => {
+      const ignition = p.attributes?.ignition;
+      if (typeof ignition !== 'boolean') return;
+      const id = p.deviceId;
+      const before = ignitionRef.current[id];
+      ignitionRef.current[id] = ignition;
+      if (ignition && before === false) {
+        clearTimeout(clearTimersRef.current[id]);
+        newJourney.add(id);
+      } else if (!ignition && before !== false) {
+        clearTimeout(clearTimersRef.current[id]);
+        clearTimersRef.current[id] = setTimeout(() => {
+          setTrails((previous) => {
+            if (!previous[id]) return previous;
+            const next = { ...previous };
+            delete next[id];
+            return next;
+          });
+        }, TRAIL_CLEAR_AFTER_OFF_MS);
+      }
+    });
     setPositions((previous) => {
       const next = { ...previous };
       items.forEach((p) => {
@@ -30,6 +61,7 @@ export function AppProvider({ children }) {
     });
     setTrails((previous) => {
       const next = { ...previous };
+      newJourney.forEach((id) => delete next[id]);
       items.forEach((p) => {
         // Only real GPS fixes while driving extend the line: a fix without satellites (valid false)
         // or a jump while parked would draw a stray line on the map.
