@@ -8,6 +8,7 @@ import VehicleSheet from '../../components/VehicleSheet';
 import MapButtons from '../../components/MapButtons';
 import PullToRefresh from '../../components/PullToRefresh';
 import TrackMap from '../../map/TrackMap';
+import { moveDuration } from '../../map/smoothMotion';
 import { findStyle, mapStyles } from '../../map/mapStyles';
 import { chooseMapStyle, setTraffic, useMapState } from '../../map/mapState';
 
@@ -87,11 +88,13 @@ export default function Monitor() {
     if (first) {
       centerOn(selectedPosition);
     } else {
+      // glide with the car: same duration and linear speed as the car's own smooth movement
       cameraRef.current.easeTo({
         center: [selectedPosition.longitude, selectedPosition.latitude],
         bearing: 0,
         padding,
-        duration: 800,
+        duration: moveDuration(selectedId, selectedPosition.latitude, selectedPosition.longitude),
+        easing: 'linear',
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -222,6 +225,7 @@ export default function Monitor() {
             initialViewState={initialViewState}
             cars={cars}
             trail={selectedId ? trails[selectedId] : null}
+            trailCarId={selectedId}
             onCarPress={openVehicle}
           />
           <MapButtons

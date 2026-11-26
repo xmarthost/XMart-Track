@@ -95,6 +95,7 @@ export default function Playback() {
         style={{ height: '42%' }}
         initialViewState={last ? { center: [last.longitude, last.latitude], zoom: 14 } : { center: [69.3451, 30.3753], zoom: 4.5 }}
         trail={route.length > 1 ? route : null}
+        smooth={false}
         cars={
           current
             ? [{ id: deviceId, latitude: current.latitude, longitude: current.longitude, course: current.course, state: 'moving' }]
