@@ -50,6 +50,11 @@ export default function NotificationSetup() {
   };
 
   const noBatteryLimits = async () => {
+    // the Play version has no permission for the direct request: open the battery settings list
+    if (Constants.expoConfig?.extra?.store === 'play') {
+      await open(IntentLauncher.ActivityAction.IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+      return;
+    }
     const ok = await open(IntentLauncher.ActivityAction.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, {
       data: `package:${PACKAGE}`,
     });

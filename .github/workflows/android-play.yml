@@ -1,0 +1,130 @@
+name: Google Play (AAB)
+
+# Builds the Google Play version of the app (AAB signed with the upload key) and, when a Play service
+# account is configured, uploads it to the chosen Play track. Started by hand from the Actions tab:
+# Actions -> "Google Play (AAB)" -> Run workflow -> choose the track.
+#
+# Repository secrets (Settings -> Secrets and variables -> Actions):
+#   PLAY_UPLOAD_KEYSTORE_BASE64   base64 of upload-keystore.jks         (required)
+#   PLAY_UPLOAD_STORE_PASSWORD    keystore password                      (required)
+#   PLAY_UPLOAD_KEY_ALIAS         key alias, e.g. upload                 (required)
+#   PLAY_UPLOAD_KEY_PASSWORD      key password                           (required)
+#   PLAY_SERVICE_ACCOUNT_JSON     Play Console API service account JSON  (optional: automatic upload)
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Play track'
+        type: choice
+        options: [internal, alpha, beta, production]
+        default: internal
+      status:
+        description: 'Release status: draft = finish it in Play Console (needed until the app is first published)'
+        type: choice
+        options: [draft, completed]
+        default: draft
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      XMART_STORE: play
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 30
+
+      - name: Check signing secrets
+        env:
+          KEYSTORE: ${{ secrets.PLAY_UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE" ]; then
+            echo "::error::Add the PLAY_UPLOAD_* secrets first (see docs/PLAY-STORE.md)."
+            exit 1
+          fi
+          # Play version codes: 1000 + build number, always higher than the previous upload
+          echo "APP_VERSION_CODE=$((1000 + ${{ github.run_number }}))" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Android project (Play version)
+        env:
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Sign with the upload key
+        env:
+          KEYSTORE: ${{ secrets.PLAY_UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
+          echo "XM_UPLOAD_STORE_FILE=$RUNNER_TEMP/upload-keystore.jks" >> "$GITHUB_ENV"
+          python3 scripts/play-signing.py
+
+      - name: Build AAB
+        working-directory: mobile/android
+        env:
+          XM_UPLOAD_STORE_PASSWORD: ${{ secrets.PLAY_UPLOAD_STORE_PASSWORD }}
+          XM_UPLOAD_KEY_ALIAS: ${{ secrets.PLAY_UPLOAD_KEY_ALIAS }}
+          XM_UPLOAD_KEY_PASSWORD: ${{ secrets.PLAY_UPLOAD_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease --no-daemon -Pandroid.enableMinifyInReleaseBuilds=false
+
+      - name: Release notes (What's new on Play, max 500 characters)
+        run: |
+          mkdir -p whatsnew
+          git log -15 --format='• %s' -- . | head -c 480 > whatsnew/whatsnew-en-US
+          cat whatsnew/whatsnew-en-US
+          cp android/app/build/outputs/bundle/release/app-release.aab XMartTrack.aab
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XMartTrack-play-aab
+          path: mobile/XMartTrack.aab
+
+      - name: Keep this Play build on GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: play-v${{ env.APP_VERSION_CODE }}
+          name: XMart Track Google Play v${{ env.APP_VERSION_CODE }}
+          make_latest: false
+          body: |
+            Google Play build ${{ env.APP_VERSION_CODE }} from ${{ github.sha }} (track: ${{ inputs.track }}).
+            Upload XMartTrack.aab in Play Console if it was not uploaded automatically.
+          files: mobile/XMartTrack.aab
+
+      - name: Check Play service account
+        id: play
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -n "$SERVICE_ACCOUNT" ]; then echo "upload=true" >> "$GITHUB_OUTPUT"; else
+            echo "::notice::No PLAY_SERVICE_ACCOUNT_JSON secret: upload XMartTrack.aab in Play Console by hand."
+          fi
+
+      - name: Upload to Google Play
+        if: steps.play.outputs.upload == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: site.xmarttrack.app
+          releaseFiles: mobile/XMartTrack.aab
+          track: ${{ inputs.track }}
+          status: ${{ inputs.status }}
+          whatsNewDirectory: mobile/whatsnew

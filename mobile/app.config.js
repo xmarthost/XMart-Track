@@ -3,6 +3,12 @@
 // Maps are drawn by MapLibre (Google or free tiles), not the Google Maps Android SDK.
 // XMART_SERVER: server address used by default on the login screen.
 const googleKey = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyB5JIXYxqF_yZdrzLBSIHxqJO4tu9c1fOk';
+// XMART_STORE=play builds the Google Play version: Play updates the app itself, so the GitHub
+// self-update and the permissions Play restricts are left out.
+const playStore = process.env.XMART_STORE === 'play';
+const androidPermissions = playStore
+  ? ['POST_NOTIFICATIONS', 'VIBRATE', 'RECEIVE_BOOT_COMPLETED', 'WAKE_LOCK']
+  : ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'POST_NOTIFICATIONS', 'VIBRATE', 'REQUEST_IGNORE_BATTERY_OPTIMIZATIONS', 'RECEIVE_BOOT_COMPLETED', 'WAKE_LOCK', 'REQUEST_INSTALL_PACKAGES'];
 
 module.exports = {
   expo: {
@@ -30,7 +36,10 @@ module.exports = {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#FFFFFF',
       },
-      permissions: ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'POST_NOTIFICATIONS', 'VIBRATE', 'REQUEST_IGNORE_BATTERY_OPTIMIZATIONS', 'RECEIVE_BOOT_COMPLETED', 'WAKE_LOCK', 'REQUEST_INSTALL_PACKAGES'],
+      permissions: androidPermissions,
+      ...(playStore
+        ? { blockedPermissions: ['android.permission.REQUEST_INSTALL_PACKAGES', 'android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS', 'android.permission.ACCESS_FINE_LOCATION', 'android.permission.ACCESS_COARSE_LOCATION', 'android.permission.ACCESS_BACKGROUND_LOCATION', 'android.permission.SYSTEM_ALERT_WINDOW'] }
+        : {}),
       // Firebase project for push notifications (server sends through Firebase Cloud Messaging)
       googleServicesFile: './google-services.json',
     },
@@ -69,6 +78,7 @@ module.exports = {
     extra: {
       server: process.env.XMART_SERVER || 'https://xmarttrack.site',
       googleKey,
+      store: playStore ? 'play' : 'github',
     },
   },
 };

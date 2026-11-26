@@ -44,6 +44,7 @@ export default function UpdatePrompt() {
 
   useEffect(() => {
     if (Platform.OS !== 'android') return; // the APK update is for Android; iPhone installs a new IPA
+    if (Constants.expoConfig?.extra?.store === 'play') return; // Google Play updates the Play version
     fetchUpdate()
       .then((info) => {
         const build = Number(info?.versionCode || 0);
