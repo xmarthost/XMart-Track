@@ -36,23 +36,35 @@ base64 -w0 upload-keystore.jks > upload-keystore.b64
 Keep `upload-keystore.jks` and both passwords safe (password manager + an offline copy). If it is lost,
 Google support can reset the upload key, but that takes days. Never commit it to the repository.
 
-### GitHub secrets
-Repository → Settings → Secrets and variables → Actions → New repository secret:
+### GitHub secrets (where the key goes)
+The key never goes into the code; GitHub keeps it encrypted and gives it only to the Play build.
 
-| Secret | Value |
+1. Open https://github.com/xmarthost/XMart-Track/settings/secrets/actions
+   (repository page → **Settings** tab → left menu **Secrets and variables** → **Actions**).
+2. Click **New repository secret**, type the **Name**, paste the **Secret**, click **Add secret**.
+   Repeat for each row:
+
+| Name | Secret |
 |---|---|
-| `PLAY_UPLOAD_KEYSTORE_BASE64` | contents of `upload-keystore.b64` |
-| `PLAY_UPLOAD_STORE_PASSWORD` | keystore password |
+| `PLAY_UPLOAD_KEYSTORE_BASE64` | the whole text of `upload-keystore.b64` (one long line) |
+| `PLAY_UPLOAD_STORE_PASSWORD` | the keystore password typed in `keytool` |
 | `PLAY_UPLOAD_KEY_ALIAS` | `upload` |
-| `PLAY_UPLOAD_KEY_PASSWORD` | key password |
-| `PLAY_SERVICE_ACCOUNT_JSON` | (later, step 4) Play API service account key |
+| `PLAY_UPLOAD_KEY_PASSWORD` | the key password (same as the keystore password if keytool did not ask separately) |
+| `PLAY_SERVICE_ACCOUNT_JSON` | (later, step 4) the whole JSON file of the Play API service account |
+
+To copy `upload-keystore.b64` from the VPS: `cat upload-keystore.b64` and copy the output, or download the
+file with WinSCP / `scp root@<vps>:upload-keystore.b64 .` and open it in Notepad.
+After adding the secrets, delete the `.b64` copy from the VPS (keep the `.jks` backup somewhere safe):
+`rm upload-keystore.b64`.
 
 ### Create the app in Play Console
-Create app → name "XMart Track", app, free. Then complete **App content**:
-- **Privacy policy URL** (required): a page on the website explaining what is collected (account email,
-  vehicle locations, phone numbers for alerts, push token) and why.
-- **Account deletion** (required for apps with accounts): a web link where users can ask to delete their
-  account and data, and how to do it from the app.
+Create app → name "XMart Track", app, free. Ready-to-paste texts, Data safety answers, the reviewer login and
+the graphics are in `docs/play/` (`LISTING.md`, `icon-512.png`, `feature-graphic-1024x500.png`).
+Then complete **App content**:
+- **Privacy policy URL** (required): `https://xmarttrack.site/privacy.html` (in the web app, `traccar-web/public`).
+- **Account deletion** (required for apps with accounts): in the app Me → Account → Delete my account, and on
+  the web `https://xmarttrack.site/delete-account.html`.
+- **App access**: a reviewer login (see `docs/play/LISTING.md`).
 - **Data safety**: location (vehicle), personal info (email, phone), app activity; collected, not sold,
   sent encrypted (HTTPS); users can request deletion.
 - Ads: no ads. Target audience: 18+. Content rating questionnaire. News app: no. Government app: no.
