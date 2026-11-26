@@ -6,6 +6,8 @@ import { carImages } from '../state/status';
 import { logInfo, logWarn } from '../state/log';
 import { TRAFFIC_OPACITY, buildStyle, trafficTiles } from './mapStyles';
 import { dismissMapNotice, initMapStyle, useMapState } from './mapState';
+import { trimLineToCar, useMatchedTrail } from './roadMatch';
+import { useSmoothCars } from './smoothMotion';
 
 const carIcons = {
   'car-moving': carImages.moving,
@@ -33,13 +35,20 @@ export const lineGeoJSON = (points) => ({
   geometry: { type: 'LineString', coordinates: points.map((p) => [p.longitude, p.latitude]) },
 });
 
+const coordsLine = (coordinates) => ({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates } });
+
 // Map drawn by MapLibre with Google or free raster tiles, car markers and an optional green trail.
 const TrackMap = forwardRef(function TrackMap(
-  { style, initialViewState, cars = [], trail, onCarPress, onPress, onRegionChange, children },
+  { style, initialViewState, cars = [], trail, trailCarId, smooth = true, onCarPress, onPress, onRegionChange, children },
   cameraRef,
 ) {
   const { active, tiles, notice, traffic, trafficStamp } = useMapState();
   const renderedRef = useRef(false);
+  // cars glide between fixes; the green line follows the roads and ends under the moving car
+  const smoothCars = useSmoothCars(cars, smooth);
+  const roadLine = useMatchedTrail(trail);
+  const trailCar = trailCarId != null ? smoothCars.find((c) => c.id === trailCarId) : null;
+  const line = trailCar && roadLine.length > 1 ? trimLineToCar(roadLine, [trailCar.longitude, trailCar.latitude]) : roadLine;
   const lastFailRef = useRef(0);
 
   useEffect(() => {
@@ -94,7 +103,7 @@ const TrackMap = forwardRef(function TrackMap(
           </RasterSource>
         )}
         {/* always mounted before the cars so the line stays under the car icons */}
-        <GeoJSONSource id="trail" data={trail && trail.length > 1 ? lineGeoJSON(trail) : emptyCollection}>
+        <GeoJSONSource id="trail" data={line.length > 1 ? coordsLine(line) : emptyCollection}>
           <Layer
             id="trail-line"
             type="line"
@@ -104,7 +113,7 @@ const TrackMap = forwardRef(function TrackMap(
         </GeoJSONSource>
         <GeoJSONSource
           id="cars"
-          data={carsGeoJSON(cars)}
+          data={carsGeoJSON(smoothCars)}
           onPress={(event) => {
             const id = event.nativeEvent.features?.[0]?.properties?.id;
             if (id != null) onCarPress?.(Number(id));
