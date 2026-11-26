@@ -1,10 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { AppState as RNAppState } from 'react-native';
 import { api, socketUrl } from '../api/server';
 import { logInfo, logWarn } from './log';
 import { handleNotificationTaps, promptSetupOnce, registerPush } from './push';
 
 const AppContext = createContext(null);
-const TRAIL_LENGTH = 300;
+const TRAIL_LENGTH = 3000;
+const toPoint = (p) => ({ latitude: p.latitude, longitude: p.longitude, time: p.fixTime });
 
 // speed is in knots; 2 knots = 3.7 km/h
 const isTrailPoint = (p) =>
@@ -14,7 +16,7 @@ const isTrailPoint = (p) =>
   (p.speed > 2 || p.attributes?.motion === true);
 
 // the green line is removed this long after ACC OFF; a new ACC ON always starts a new line
-const TRAIL_CLEAR_AFTER_OFF_MS = 12000;
+const TRAIL_CLEAR_AFTER_OFF_MS = 30000;
 
 export function AppProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -69,9 +71,7 @@ export function AppProvider({ children }) {
         const trail = next[p.deviceId] || [];
         const last = trail[trail.length - 1];
         if (!last || last.latitude !== p.latitude || last.longitude !== p.longitude) {
-          next[p.deviceId] = [...trail, { latitude: p.latitude, longitude: p.longitude }].slice(
-            -TRAIL_LENGTH,
-          );
+          next[p.deviceId] = [...trail, toPoint(p)].slice(-TRAIL_LENGTH);
         }
       });
       return next;
@@ -160,6 +160,46 @@ export function AppProvider({ children }) {
     return handleNotificationTaps(setSelectedId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  // The green line shows the whole current journey: the route since the last ACC ON is loaded from
+  // the server when a vehicle is opened and when the app comes back to the screen, so it starts where
+  // the trip started even if the app was closed then.
+  const loadTrail = useCallback(async (deviceId) => {
+    try {
+      const now = new Date();
+      const from = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
+      const acc = await api(
+        `api/reports/events?deviceId=${deviceId}&type=ignitionOn&type=ignitionOff&from=${from}&to=${now.toISOString()}`,
+      );
+      const last = acc.sort((a, b) => new Date(b.eventTime) - new Date(a.eventTime))[0];
+      if (!last || last.type !== 'ignitionOn') return;
+      const route = await api(
+        `api/reports/route?deviceId=${deviceId}&from=${new Date(last.eventTime).toISOString()}&to=${now.toISOString()}`,
+        { timeout: 25000 },
+      );
+      const usable = route.filter((p) => p.valid !== false && (p.attributes?.sat ?? 1) > 0);
+      if (!usable.length) return;
+      const step = Math.ceil(usable.length / TRAIL_LENGTH);
+      const points = usable.filter((_, i) => i % step === 0 || i === usable.length - 1).map(toPoint);
+      const end = new Date(usable[usable.length - 1].fixTime).getTime();
+      setTrails((previous) => {
+        // keep live points that arrived after the loaded route
+        const live = (previous[deviceId] || []).filter((p) => p.time && new Date(p.time).getTime() > end);
+        return { ...previous, [deviceId]: [...points, ...live].slice(-TRAIL_LENGTH) };
+      });
+      logInfo('trail', `journey line: ${points.length} points since ACC ON`);
+    } catch (error) {
+      logWarn('trail', 'could not load the journey route', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user || !selectedId) return undefined;
+    loadTrail(selectedId);
+    const subscription = RNAppState.addEventListener('change', (state) => state === 'active' && loadTrail(selectedId));
+    return () => subscription.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, selectedId, loadTrail]);
 
   const value = {
     user,
