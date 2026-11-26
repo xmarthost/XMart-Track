@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delete account – XMart Track</title>
+<style>
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background: #F4F8FD; color: #0F172A; line-height: 1.6; }
+  main { max-width: 520px; margin: 0 auto; padding: 24px 16px 48px; }
+  header { background: #0A4A55; color: #fff; padding: 20px 16px; }
+  header h1 { margin: 0 auto; max-width: 520px; font-size: 22px; }
+  .card { background: #fff; border-radius: 12px; padding: 16px 20px 20px; box-shadow: 0 1px 4px rgba(15,23,42,.08); }
+  label { display: block; font-weight: 600; font-size: 14px; margin-top: 12px; }
+  input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 16px; margin-top: 4px; }
+  button { margin-top: 18px; width: 100%; padding: 12px; border: 0; border-radius: 10px; background: #DC2626; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
+  button:disabled { opacity: .6; }
+  #msg { margin-top: 14px; font-weight: 600; }
+  .ok { color: #16A34A; } .err { color: #DC2626; }
+  a { color: #007080; }
+</style>
+</head>
+<body>
+<header><h1>XMart Track – Delete your account</h1></header>
+<main><div class="card">
+<p>Sign in to delete your XMart Track account permanently. This removes your login, settings, alert phone numbers and
+app notification tokens. Vehicles and their location history belong to the fleet owner who added them and stay with
+that owner. You can also do this in the app: <strong>Me → Account, password &amp; delete account</strong>.</p>
+<form id="form">
+  <label for="email">Login (email)</label>
+  <input id="email" type="text" autocomplete="username" required>
+  <label for="password">Password</label>
+  <input id="password" type="password" autocomplete="current-password" required>
+  <button id="go" type="submit">Delete my account</button>
+</form>
+<div id="msg"></div>
+<p style="margin-top:20px"><a href="privacy.html">Privacy policy</a></p>
+</div></main>
+<script>
+  const msg = document.getElementById('msg');
+  const show = (text, ok) => { msg.textContent = text; msg.className = ok ? 'ok' : 'err'; };
+  document.getElementById('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const button = document.getElementById('go');
+    if (!confirm('Delete your account permanently? This cannot be undone.')) return;
+    button.disabled = true;
+    try {
+      const login = await fetch('api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ email: document.getElementById('email').value.trim(), password: document.getElementById('password').value }),
+      });
+      if (!login.ok) throw new Error('Wrong login or password.');
+      const user = await login.json();
+      if (user.administrator) throw new Error('This is the server administrator account; it cannot be deleted here.');
+      const removed = await fetch('api/users/' + user.id, { method: 'DELETE' });
+      if (!removed.ok) throw new Error('The account could not be deleted (' + removed.status + ').');
+      show('Your account has been deleted.', true);
+      document.getElementById('form').remove();
+    } catch (error) {
+      show(error.message, false);
+      button.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

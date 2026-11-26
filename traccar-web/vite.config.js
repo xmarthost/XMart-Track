@@ -24,7 +24,7 @@ export default defineConfig(() => ({
       injectRegister: false,
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png'],
       workbox: {
-        navigateFallbackDenylist: [/\/api(\/|$)/],
+        navigateFallbackDenylist: [/\/api(\/|$)/, /privacy\.html$/, /delete-account\.html$/],
         importScripts: ['sw-notify.js'],
         globPatterns: ['**/*.{js,css,html,ttf,woff,woff2,mp3}'],
         // XMart: keep viewed map tiles, styles and fonts on the device so the map opens fast

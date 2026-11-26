@@ -19,7 +19,8 @@ export default function Me() {
     ['notifications-active', 'Notification setup (app closed)', () => router.push('/notification-setup')],
     ['devices', 'Devices (add by IMEI)', () => router.push('/devices')],
     ['hexagon', 'Geofences', () => router.push('/geofences')],
-    ['security', 'Account & password', () => router.push('/account')],
+    ['security', 'Account, password & delete account', () => router.push('/account')],
+    ['policy', 'Privacy policy', () => Linking.openURL(`${getBase()}/privacy.html`)],
     ['bug-report', 'Diagnostics & logs', () => router.push('/diagnostics')],
     ['admin-panel-settings', 'Server admin (website)', () => web('settings/integrations')],
   ];

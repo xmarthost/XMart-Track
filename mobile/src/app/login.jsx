@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Linking,
   ActivityIndicator,
   Image,
   KeyboardAvoidingView,
@@ -84,6 +85,9 @@ export default function Login() {
           </Pressable>
           <Pressable onPress={() => setShowServer(!showServer)}>
             <Text style={styles.link}>{showServer ? 'Hide server' : 'Change server'}</Text>
+          </Pressable>
+          <Pressable onPress={() => Linking.openURL(`${(server || getBase()).replace(/\/+$/, '')}/privacy.html`)}>
+            <Text style={styles.link}>Privacy policy</Text>
           </Pressable>
         </View>
       </ScrollView>
