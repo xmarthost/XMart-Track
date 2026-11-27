@@ -16,6 +16,7 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import CampaignIcon from '@mui/icons-material/Campaign';
 import CalculateIcon from '@mui/icons-material/Calculate';
 import KeyIcon from '@mui/icons-material/VpnKey';
+import BackupIcon from '@mui/icons-material/Backup';
 import SmsIcon from '@mui/icons-material/Sms';
 import { useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -157,6 +158,14 @@ const SettingsMenu = () => {
                 link="/settings/integrations"
                 icon={<KeyIcon />}
                 selected={location.pathname === '/settings/integrations'}
+              />
+            )}
+            {admin && (
+              <MenuItem
+                title={t('xmBackup')}
+                link="/settings/backup"
+                icon={<BackupIcon />}
+                selected={location.pathname === '/settings/backup'}
               />
             )}
             {admin && (

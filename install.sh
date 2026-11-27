@@ -246,7 +246,8 @@ WorkingDirectory=$APP_DIR
 ExecStart=/usr/bin/java -Xms256m -Xmx1g -XX:+ExitOnOutOfMemoryError -jar tracker-server.jar conf/traccar.xml
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 SuccessExitStatus=143
-Restart=on-failure
+# always: a backup import restarts the server on purpose
+Restart=always
 RestartSec=10
 LimitNOFILE=65536
 
@@ -287,6 +288,20 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_read_timeout 86400;
+    }
+
+    # backup export / import from the web panel (Settings -> Backup): large files, long transfers
+    location /api/xmart/backup {
+        proxy_pass http://127.0.0.1:8082;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        client_max_body_size 0;
+        proxy_request_buffering off;
+        proxy_buffering off;
+        proxy_read_timeout 3600;
+        proxy_send_timeout 3600;
     }
 
     location /api/socket {

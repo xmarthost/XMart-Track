@@ -70,6 +70,7 @@ const MePage = lazy(() => import('./mobile/MePage'));
 const DeviceCommandsPage = lazy(() => import('./mobile/DeviceCommandsPage'));
 const DeviceMorePage = lazy(() => import('./mobile/DeviceMorePage'));
 const IntegrationsPage = lazy(() => import('./settings/IntegrationsPage'));
+const BackupPage = lazy(() => import('./settings/BackupPage'));
 const SmsAlertsPage = lazy(() => import('./settings/SmsAlertsPage'));
 const EventsPage = lazy(() => import('./other/EventsPage'));
 const DashboardPage = lazy(() => import('./reports/DashboardPage'));
@@ -192,6 +193,7 @@ const Navigation = () => {
             <Route path="preferences" element={<PreferencesPage />} />
             <Route path="server" element={<ServerPage />} />
             <Route path="integrations" element={<IntegrationsPage />} />
+            <Route path="backup" element={<BackupPage />} />
             <Route path="sms-alerts" element={<SmsAlertsPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="user/:id/connections" element={<UserConnectionsPage />} />
