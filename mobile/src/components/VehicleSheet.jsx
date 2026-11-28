@@ -4,13 +4,14 @@ import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { api } from '../api/server';
+import ShareLinkModal from './ShareLinkModal';
 import { logWarn } from '../state/log';
 import { colors, duration, formatDateTime, getState, kmh, since } from '../state/status';
 
 const actionColors = {
   geofence: '#DC2626',
   playback: '#10B981',
-  alerts: '#F59E0B',
+  trips: '#F59E0B',
   commands: '#007080',
   navigate: '#14B8A6',
 };
@@ -58,7 +59,7 @@ async function lookupAddress(latitude, longitude) {
   }
 }
 
-function useAddress(position) {
+export function useAddress(position) {
   const [address, setAddress] = useState(position?.address);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => setAttempt(0), [position?.latitude, position?.longitude]);
@@ -148,6 +149,7 @@ function useAccSince(deviceId, ignition) {
 
 export default function VehicleSheet({ device, position, onClose, onHeight }) {
   const [expanded, setExpanded] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const attributes = position?.attributes || {};
   const state = getState(device, position);
   const address = useAddress(position);
@@ -169,7 +171,7 @@ export default function VehicleSheet({ device, position, onClose, onHeight }) {
       icon: 'history',
       onPress: () => router.push(`/device/${device.id}/playback`),
     },
-    { key: 'alerts', label: 'Alerts', icon: 'notifications-active', onPress: () => router.push('/(tabs)/alerts') },
+    { key: 'trips', label: 'Trips', icon: 'timeline', onPress: () => router.push(`/device/${device.id}/trips`) },
     {
       key: 'commands',
       label: 'Commands',
@@ -228,6 +230,9 @@ export default function VehicleSheet({ device, position, onClose, onHeight }) {
             <Text style={styles.name} numberOfLines={1}>
               {device.name}
             </Text>
+            <Pressable onPress={() => setSharing(true)} hitSlop={10} style={{ marginRight: 18 }}>
+              <MaterialIcons name="share" size={22} color={colors.teal} />
+            </Pressable>
             <Pressable onPress={() => router.push(`/devices?id=${device.id}`)} hitSlop={10} style={{ marginRight: 18 }}>
               <MaterialIcons name="edit" size={22} color={colors.teal} />
             </Pressable>
@@ -277,6 +282,7 @@ export default function VehicleSheet({ device, position, onClose, onHeight }) {
           <Text style={styles.meta}>Last update {since(device.lastUpdate)} ago</Text>
         </View>
       </ScrollView>
+      <ShareLinkModal device={device} visible={sharing} onClose={() => setSharing(false)} />
     </View>
   );
 }
@@ -289,7 +295,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.card,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     elevation: 16,
