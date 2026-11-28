@@ -65,7 +65,7 @@ export const palette = themes[themeId];
 export const saveTheme = (id) => SecureStore.setItemAsync(THEME_KEY, id);
 
 // layouts: classic | fullmap | dashboard | split | simple ('list' = older List First, shown like Classic)
-export const layouts = ['classic', 'fullmap', 'list', 'dashboard', 'split', 'simple'];
+export const layouts = ['classic', 'pro', 'fullmap', 'list', 'dashboard', 'split', 'simple'];
 export const savedLayout = () => {
   const value = read(LAYOUT_KEY, null);
   return layouts.includes(value) ? value : null;

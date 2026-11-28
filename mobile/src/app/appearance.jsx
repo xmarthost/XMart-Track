@@ -9,6 +9,7 @@ import { Button, ui, useContentStyle } from '../components/ui';
 
 const layoutInfo = [
   { id: 'classic', name: 'Classic', icon: 'map', who: 'Like common tracking apps', text: 'List and Map tabs, buttons on both sides, big vehicle card with all details.' },
+  { id: 'pro', name: 'Pro', icon: 'apps', who: 'Everything with icons', text: 'Vehicles list, map with address and details cards, five big buttons (Track, Playback, Geo-fence, Commands, More) and a More page with all functions.' },
   { id: 'fullmap', name: 'Full Map', icon: 'fullscreen', who: 'Everyone who wants a big map', text: 'Map on the whole screen, options in a bar at the bottom, small vehicle card.' },
   { id: 'dashboard', name: 'Dashboard', icon: 'space-dashboard', who: 'Owners', text: "Today's km, engine time, top speed and alerts above a small map; compact map buttons." },
   { id: 'split', name: 'Split View', icon: 'vertical-split', who: 'Office, tablet', text: 'Map and list together; side by side when the phone is turned.' },
@@ -22,6 +23,7 @@ function Preview({ id }) {
   return (
     <View style={styles.preview}>
       {id === 'classic' && (<>{map({ flex: 1 })}{block({ height: 14, marginTop: 3 })}</>)}
+      {id === 'pro' && (<>{block({ height: 12, marginBottom: 3 })}{map({ flex: 1 })}<View style={{ flexDirection: 'row', gap: 2, marginTop: 3 }}>{['#8B5CF6', '#3B82F6', '#F59E0B', '#16A34A', '#64748B'].map((c) => <View key={c} style={{ flex: 1, height: 9, borderRadius: 2, backgroundColor: c }} />)}</View></>)}
       {id === 'fullmap' && (<>{map({ flex: 1 })}<View style={{ position: 'absolute', left: 6, right: 6, bottom: 6, height: 10, borderRadius: 4, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }} /></>)}
       {id === 'dashboard' && (
         <>

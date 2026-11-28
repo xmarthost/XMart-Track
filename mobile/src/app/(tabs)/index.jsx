@@ -15,6 +15,7 @@ import { chooseMapStyle, setTraffic, useMapState } from '../../map/mapState';
 import { vehicleIcon } from '../../state/vehicleLook';
 import { useLayout } from '../../state/theme';
 import { DashboardHome, SimpleHome, SplitHome } from '../../components/HomeLayouts';
+import ProVehicle, { PRO_BAR_HEIGHT } from '../../components/ProVehicle';
 
 const tabs = [
   { key: 'all', label: 'All' },
@@ -31,9 +32,10 @@ const looks = {
   dashboard: { header: true, buttons: 'column', sheet: 'compact' },
   split: { header: true, buttons: 'column', sheet: 'compact' },
   simple: { header: true, buttons: 'big', sheet: 'large' },
+  pro: { header: true, buttons: 'column', sheet: 'pro' },
 };
 const BAR_SPACE = 84; // the Full Map option bar and its margin
-const homeLabel = { classic: 'List', list: 'List', fullmap: 'Vehicles', dashboard: 'Dashboard', split: 'Split', simple: 'Vehicles' };
+const homeLabel = { classic: 'List', list: 'List', fullmap: 'Vehicles', pro: 'Vehicles', dashboard: 'Dashboard', split: 'Split', simple: 'Vehicles' };
 
 export default function Monitor() {
   const { user, devices, positions, trails, selectedId, setSelectedId, refresh } = useApp();
@@ -79,8 +81,10 @@ export default function Monitor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // keep the car in the middle of the part of the map that the bottom sheet does not cover
-  const sheetPad = selected ? sheetHeight || Math.round(areaHeight * 0.5) : 0;
-  const padding = { top: 0, right: 0, left: 0, bottom: sheetPad };
+  const pro = look.sheet === 'pro';
+  const sheetPad = selected ? (pro ? PRO_BAR_HEIGHT + 10 : sheetHeight || Math.round(areaHeight * 0.5)) : 0;
+  // Pro: the address and details cards cover the top of the map
+  const padding = { top: selected && pro ? Math.round(areaHeight * 0.42) : 0, right: 0, left: 0, bottom: sheetPad };
 
   const zoomUntilRef = useRef(0);
 
@@ -315,7 +319,10 @@ export default function Monitor() {
               </View>
             </View>
           )}
-          {selected && view === 'map' && (
+          {selected && view === 'map' && look.sheet === 'pro' && (
+            <ProVehicle device={selected} position={selectedPosition} onTrack={() => centerOn(selectedPosition)} onClose={() => setSelectedId(null)} />
+          )}
+          {selected && view === 'map' && look.sheet !== 'pro' && (
             <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
               <VehicleSheet
                 device={selected}
@@ -338,7 +345,7 @@ export default function Monitor() {
         {view === 'list' && layout === 'simple' && (
           <SimpleHome list={list} positions={positions} onOpen={openVehicle} refresh={refresh} />
         )}
-        {view === 'list' && (layout === 'classic' || layout === 'list' || layout === 'fullmap') && (
+        {view === 'list' && (layout === 'classic' || layout === 'list' || layout === 'fullmap' || layout === 'pro') && (
           <View style={[StyleSheet.absoluteFill, styles.listLayer]}>
             {layout === 'fullmap' && (
               <View style={styles.listHeader}>

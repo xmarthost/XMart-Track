@@ -97,7 +97,7 @@ export function useAddress(position) {
 
 // Car battery voltage arrives in separate info packets, so the newest position may not carry it:
 // fall back to the latest voltage seen in the last 12 hours.
-function useVoltage(deviceId, attributes) {
+export function useVoltage(deviceId, attributes) {
   const [found, setFound] = useState(null);
   const live = attributes.power ?? null;
   useEffect(() => {
@@ -119,7 +119,7 @@ function useVoltage(deviceId, attributes) {
   return found || { battery: attributes.battery };
 }
 
-function useAccSince(deviceId, ignition) {
+export function useAccSince(deviceId, ignition) {
   const [value, setValue] = useState({});
   useEffect(() => {
     let active = true;
