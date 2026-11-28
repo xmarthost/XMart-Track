@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { installLogCapture, logInfo } from '../state/log';
+import { installLogCapture, logError, logInfo } from '../state/log';
 import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useKeepAwake } from 'expo-keep-awake';
 import { AppProvider, useApp } from '../state/AppState';
 import { restoreSession } from '../api/server';
+import { savedLayout } from '../state/theme';
 import { colors } from '../state/status';
 import EventBanner from '../components/EventBanner';
 import UpdatePrompt from '../components/UpdatePrompt';
@@ -37,12 +38,24 @@ function Gate() {
 
   useEffect(() => {
     (async () => {
-      const user = await restoreSession();
-      logInfo('session', user ? `restored ${user.email}` : 'no saved session');
-      if (user) setUser(user);
+      // whatever goes wrong here, the app must leave the start screen (never stay on it)
+      let user = null;
+      try {
+        user = await restoreSession();
+        logInfo('session', user ? `restored ${user.email}` : 'no saved session');
+        if (user) setUser(user);
+      } catch (error) {
+        logError('session', 'start failed', error);
+      }
       setReady(true);
       SplashScreen.hideAsync().catch(() => {});
-      router.replace(user ? (savedLayout() ? '/(tabs)' : '/appearance?first=1') : '/login');
+      let target = user ? '/(tabs)' : '/login';
+      try {
+        if (user && !savedLayout()) target = '/appearance?first=1';
+      } catch {
+        // keep the default target
+      }
+      router.replace(target);
     })();
   }, [setUser]);
 

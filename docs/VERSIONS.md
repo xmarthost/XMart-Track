@@ -19,6 +19,7 @@ All releases: https://github.com/xmarthost/XMart-Track/releases
 
 | Version | Date | What it is |
 |---|---|---|
+| v2.0.1 | 2026-11-28 | Fix: app stayed on the green start screen after updating to 2.0.0. |
 | v2.0.0 | 2026-11-28 | Phase 1: 5 layouts, Light / XMart Teal / Dark themes, vehicle icons and colours, trips report, live share link, moved-while-parked alarm, automatic history cleanup, version releases. |
 
 ## Earlier versions (before 2.0.0, by commit)
