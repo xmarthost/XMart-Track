@@ -34,6 +34,7 @@ export default function MapButtons({
   onTraffic,
   variant = 'sides',
   bottom = 0,
+  top,
   onList,
 }) {
   // Full Map layout: one row of options along the bottom of the map
@@ -76,7 +77,7 @@ export default function MapButtons({
   // Dashboard / Split: one compact column on the right
   if (variant === 'column') {
     return (
-      <View style={[styles.column, { right: 12, gap: 8 }]}>
+      <View style={[styles.column, { right: 12, gap: 8 }, top != null && { top }]}>
         <SmallButton icon="map" onPress={onMapType} />
         <SmallButton icon="satellite-alt" onPress={onSatellite} active={satellite} />
         <SmallButton icon="traffic" onPress={onTraffic} active={traffic} />

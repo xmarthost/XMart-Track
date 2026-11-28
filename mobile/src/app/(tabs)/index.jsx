@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router, useNavigation } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useApp } from '../../state/AppState';
 import { colors, getState, kmh, since } from '../../state/status';
@@ -15,7 +15,7 @@ import { chooseMapStyle, setTraffic, useMapState } from '../../map/mapState';
 import { vehicleIcon } from '../../state/vehicleLook';
 import { useLayout } from '../../state/theme';
 import { DashboardHome, SimpleHome, SplitHome } from '../../components/HomeLayouts';
-import ProVehicle, { PRO_BAR_HEIGHT } from '../../components/ProVehicle';
+import { PRO_BAR_HEIGHT, PRO_TOP_HEIGHT, ProActionBar, ProCallout, ProTopCard } from '../../components/ProVehicle';
 
 const tabs = [
   { key: 'all', label: 'All' },
@@ -45,6 +45,9 @@ export default function Monitor() {
   const mapFirst = layout === 'classic' || layout === 'fullmap';
   const [view, setView] = useState(mapFirst ? 'map' : 'list');
   const [focusId, setFocusId] = useState(null);
+  const [calloutOpen, setCalloutOpen] = useState(true);
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const [tab, setTab] = useState('all');
   const [keyword, setKeyword] = useState('');
   const { chosen: mapStyle, active: activeStyle, traffic } = useMapState();
@@ -82,9 +85,16 @@ export default function Monitor() {
   }, []);
   // keep the car in the middle of the part of the map that the bottom sheet does not cover
   const pro = look.sheet === 'pro';
-  const sheetPad = selected ? (pro ? PRO_BAR_HEIGHT + 10 : sheetHeight || Math.round(areaHeight * 0.5)) : 0;
-  // Pro: the address and details cards cover the top of the map
-  const padding = { top: selected && pro ? Math.round(areaHeight * 0.42) : 0, right: 0, left: 0, bottom: sheetPad };
+  // Pro with a vehicle open: full-screen map (no header, tabs or tab bar), card on top, bar at the bottom
+  const proOpen = pro && view === 'map' && Boolean(selected);
+  const sheetPad = selected ? (pro ? PRO_BAR_HEIGHT + insets.bottom + 10 : sheetHeight || Math.round(areaHeight * 0.5)) : 0;
+  // keep the car below the top card and, when shown, below its details popup
+  const padding = {
+    top: proOpen ? PRO_TOP_HEIGHT + (calloutOpen ? 210 : 30) : 0,
+    right: 0,
+    left: 0,
+    bottom: sheetPad,
+  };
 
   const zoomUntilRef = useRef(0);
 
@@ -137,6 +147,13 @@ export default function Monitor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sheetHeight]);
 
+  // Pro: hide the tab bar while a vehicle is open (the five buttons take its place)
+  useEffect(() => {
+    navigation.setOptions({
+      tabBarStyle: proOpen ? { display: 'none' } : { backgroundColor: colors.card, borderTopColor: colors.border },
+    });
+  }, [navigation, proOpen]);
+
   // a new layout chosen in Layout & theme: show its home screen (Classic: the map)
   const firstLayout = useRef(true);
   useEffect(() => {
@@ -153,6 +170,12 @@ export default function Monitor() {
   }, [selectedId]);
 
   const openVehicle = (id) => {
+    // Pro: tapping the open vehicle's car shows / hides its details popup
+    if (pro && id === selectedId && view === 'map') {
+      setCalloutOpen((open) => !open);
+      return;
+    }
+    setCalloutOpen(true);
     // same vehicle tapped again while the map is showing: nothing changes state, so zoom here
     if (id === selectedId && view === 'map') centerOn(positions[id]);
     if (id !== selectedId) setSheetHeight(0);
@@ -257,7 +280,7 @@ export default function Monitor() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      {look.header ? (
+      {look.header && !proOpen ? (
       <>
       <View style={styles.header}>
         <Image source={require('../../../assets/icon.png')} style={styles.headerIcon} />
@@ -289,6 +312,11 @@ export default function Monitor() {
             trail={selectedId ? trails[selectedId] : null}
             trailCarId={selectedId}
             onCarPress={openVehicle}
+            callout={
+              proOpen && calloutOpen
+                ? { carId: selectedId, content: <ProCallout device={selected} position={selectedPosition} onClose={() => setCalloutOpen(false)} /> }
+                : null
+            }
           />
           {!(view === 'list' && (layout === 'dashboard' || layout === 'split')) && (
           <MapButtons
@@ -305,6 +333,7 @@ export default function Monitor() {
             onTraffic={() => setTraffic(!traffic)}
             variant={look.buttons}
             onList={() => setView('list')}
+            top={proOpen ? PRO_TOP_HEIGHT + 20 : undefined}
           />
           )}
           {layout === 'fullmap' && view === 'map' && (
@@ -319,8 +348,18 @@ export default function Monitor() {
               </View>
             </View>
           )}
-          {selected && view === 'map' && look.sheet === 'pro' && (
-            <ProVehicle device={selected} position={selectedPosition} onTrack={() => centerOn(selectedPosition)} onClose={() => setSelectedId(null)} />
+          {proOpen && (
+            <>
+              <ProTopCard
+                device={selected}
+                position={selectedPosition}
+                onBack={() => {
+                  setSelectedId(null);
+                  setView('list');
+                }}
+              />
+              <ProActionBar device={selected} onTrack={() => centerOn(selectedPosition)} bottomInset={insets.bottom} />
+            </>
           )}
           {selected && view === 'map' && look.sheet !== 'pro' && (
             <View style={StyleSheet.absoluteFill} pointerEvents="box-none">

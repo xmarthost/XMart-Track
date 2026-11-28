@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Camera, GeoJSONSource, Images, Layer, Map, RasterSource } from '@maplibre/maplibre-react-native';
+import { Camera, GeoJSONSource, Images, Layer, Map, RasterSource, ViewAnnotation } from '@maplibre/maplibre-react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { carImages } from '../state/status';
 import { vehicleImages } from './vehicleIcons';
@@ -43,7 +43,7 @@ const coordsLine = (coordinates) => ({ type: 'Feature', properties: {}, geometry
 
 // Map drawn by MapLibre with Google or free raster tiles, car markers and an optional green trail.
 const TrackMap = forwardRef(function TrackMap(
-  { style, initialViewState, cars = [], trail, trailCarId, smooth = true, onCarPress, onPress, onRegionChange, children },
+  { style, initialViewState, cars = [], trail, trailCarId, smooth = true, callout, onCarPress, onPress, onRegionChange, children },
   cameraRef,
 ) {
   const { active, tiles, notice, traffic, trafficStamp } = useMapState();
@@ -145,6 +145,15 @@ const TrackMap = forwardRef(function TrackMap(
             paint={{ 'icon-opacity': ['get', 'opacity'] }}
           />
         </GeoJSONSource>
+        {/* a details popup that sits on a car (Pro layout); it follows the smoothly moving car */}
+        {callout && (() => {
+          const car = smoothCars.find((c) => c.id === callout.carId);
+          return car ? (
+            <ViewAnnotation id="car-callout" lngLat={[car.longitude, car.latitude]} anchor="bottom" offset={[0, -26]}>
+              {callout.content}
+            </ViewAnnotation>
+          ) : null;
+        })()}
         {children}
       </Map>
       {notice && (
