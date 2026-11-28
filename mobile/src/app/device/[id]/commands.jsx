@@ -69,11 +69,20 @@ const groups = [
         fields: [{ key: 'value', label: 'Mobile number', phone: true }],
       },
       {
-        label: 'Add SOS number',
+        label: 'SOS numbers (up to 3)',
         icon: 'sos',
-        data: 'sos,a,{value}#',
-        fields: [{ key: 'value', label: 'Mobile number', phone: true }],
+        data: 'SOS,A,{sos1},{sos2},{sos3}#',
+        fields: [
+          { key: 'sos1', label: 'SOS number 1', phone: true },
+          { key: 'sos2', label: 'SOS number 2 (optional)', phone: true, optional: true },
+          { key: 'sos3', label: 'SOS number 3 (optional)', phone: true, optional: true },
+        ],
+        // empty optional numbers are left out: SOS,A,num1,num2#
+        build: (v) => `SOS,A,${[v.sos1, v.sos2, v.sos3].map((n) => (n || '').trim()).filter(Boolean).join(',')}#`,
+        note: 'The tracker calls / sends SMS to these numbers on SOS and alarms. Sending again replaces the list.',
       },
+      { label: 'Check SOS numbers', icon: 'contact-phone', data: 'SOS#' },
+      { label: 'Delete all SOS numbers', icon: 'phonelink-erase', data: 'SOS,D,1,2,3#' },
     ],
   },
   {
@@ -123,13 +132,15 @@ export default function Commands() {
     setSelected(item);
   };
 
-  const text = selected?.data
-    ? (selected.fields || []).reduce((t, f) => t.replace(`{${f.key}}`, (values[f.key] || '').trim()), selected.data)
-    : null;
+  const text = selected?.build
+    ? selected.build(values)
+    : selected?.data
+      ? (selected.fields || []).reduce((t, f) => t.replace(`{${f.key}}`, (values[f.key] || '').trim()), selected.data)
+      : null;
 
   const problem = (() => {
     if (!selected) return null;
-    const empty = (selected.fields || []).find((f) => !(values[f.key] || '').trim());
+    const empty = (selected.fields || []).find((f) => !f.optional && !(values[f.key] || '').trim());
     if (empty) return `Enter ${empty.label.toLowerCase()}`;
     const bad = (selected.fields || []).find((f) => {
       if (!f.numeric) return false;
@@ -178,8 +189,8 @@ export default function Commands() {
                 onPress={() => open(item)}
                 android_ripple={{ color: colors.border }}
               >
-                <View style={[styles.itemIcon, { backgroundColor: item.danger ? '#FEE2E2' : '#E6F4F5' }]}>
-                  <MaterialIcons name={item.icon} size={20} color={item.danger ? colors.offline : colors.teal} />
+                <View style={[styles.itemIcon, { backgroundColor: item.danger ? colors.offline : colors.teal }]}>
+                  <MaterialIcons name={item.icon} size={20} color="#FFF" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.itemText, item.danger && { color: colors.offline }]}>{item.label}</Text>
@@ -281,7 +292,7 @@ const styles = StyleSheet.create({
   group: { backgroundColor: colors.card, borderRadius: 16, overflow: 'hidden', paddingBottom: 2 },
   groupTitle: { fontSize: 16, fontWeight: '800', color: colors.text, margin: 14, marginBottom: 6, paddingLeft: 8, borderLeftWidth: 3, borderLeftColor: colors.teal },
   item: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.background },
-  itemIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  itemIcon: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   itemText: { fontSize: 15, fontWeight: '600', color: colors.text },
   itemCode: { fontSize: 12, color: '#94A3B8', fontFamily: 'monospace', marginTop: 2 },
   empty: { color: colors.muted, paddingHorizontal: 16, paddingBottom: 14 },
