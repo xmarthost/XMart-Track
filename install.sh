@@ -116,7 +116,21 @@ fi
 (cd "$SRC_DIR" && chmod +x gradlew && ./gradlew assemble --no-daemon -q -Dorg.gradle.jvmargs=-Xmx768m)
 
 log "Building web interface"
-(cd "$SRC_DIR/traccar-web" && npm ci --no-audit --no-fund --loglevel=error && npx vite build)
+WEB_TREE="$(git -C "$SRC_DIR" rev-parse HEAD:traccar-web)"
+if ! (cd "$SRC_DIR/traccar-web" && npm ci --no-audit --no-fund --loglevel=error && npx vite build); then
+  # Some VPS CPUs hide instructions the build tools need ("Illegal instruction"): use the web interface
+  # built on GitHub for the same source instead.
+  warn "Building the web interface on this VPS failed; downloading the ready-made build from GitHub"
+  WEB_TMP="$(mktemp -d)"
+  curl -fsSL -o "$WEB_TMP/web.tar.gz" "https://github.com/xmarthost/XMart-Track/releases/download/web-latest/web.tar.gz"
+  tar -xzf "$WEB_TMP/web.tar.gz" -C "$WEB_TMP"
+  if [ "$(cat "$WEB_TMP/build/TREE" 2>/dev/null)" != "$WEB_TREE" ]; then
+    warn "The ready-made web interface is from a slightly different version; it is used anyway"
+  fi
+  rm -rf "$SRC_DIR/traccar-web/build"
+  mv "$WEB_TMP/build" "$SRC_DIR/traccar-web/build"
+  rm -rf "$WEB_TMP"
+fi
 
 log "Installing files to $APP_DIR"
 mkdir -p "$APP_DIR"/{conf,data,logs,media}

@@ -1,0 +1,46 @@
+name: Web interface build
+
+# Builds the web interface and publishes it on the "web-latest" release. The installer uses it when the
+# VPS cannot build the web interface itself (e.g. a CPU without the instructions the build tools need:
+# "Illegal instruction"). TREE identifies the exact source (git tree of traccar-web).
+on:
+  push:
+    branches: [xmart-web-ui]
+    paths:
+      - 'traccar-web/**'
+      - '.github/workflows/web-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: traccar-web/package-lock.json
+
+      - name: Build
+        working-directory: traccar-web
+        run: npm ci --no-audit --no-fund --loglevel=error && npx vite build
+
+      - name: Package
+        run: |
+          git rev-parse HEAD:traccar-web > traccar-web/build/TREE
+          tar -czf web.tar.gz -C traccar-web build
+          ls -la web.tar.gz
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: web-latest
+          name: XMart Track web interface (latest build)
+          make_latest: false
+          body: |
+            Ready-made web interface from ${{ github.sha }}, used by the installer when the VPS cannot build it.
+          files: web.tar.gz
