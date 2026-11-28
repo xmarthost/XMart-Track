@@ -126,6 +126,10 @@ public class NotificatorXmartWhatsapp extends Notificator {
     }
 
     static String titleFor(Event event) {
+        if (Event.TYPE_ALARM.equals(event.getType())
+                && Position.ALARM_MOVEMENT.equals(event.getString(Position.KEY_ALARM))) {
+            return "🚨 Vehicle moving while ACC is OFF";
+        }
         String title = TITLES.getOrDefault(event.getType(), "🔔 " + event.getType());
         if (Event.TYPE_ALARM.equals(event.getType()) && event.getString(Position.KEY_ALARM) != null) {
             title += ": " + event.getString(Position.KEY_ALARM);
