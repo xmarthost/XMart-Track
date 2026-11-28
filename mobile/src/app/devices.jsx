@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { api, apiJson, getBase } from '../api/server';
 import { useApp } from '../state/AppState';
 import { colors, formatDateTime } from '../state/status';
+import { ICON_COLOR_KEY, ICON_KEY, STATUS_COLOR, fixedColors, iconColors, vehicleImages, vehicleTypes } from '../state/vehicleLook';
 import { Button, Card, Chips, Code, Empty, Field, SwitchRow, ui, useContentStyle } from '../components/ui';
 
 const models = [
@@ -23,6 +24,7 @@ const isIp = (host) => /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
 const blank = { id: null, name: '', uniqueId: '', phone: '', model: models[0].value, attributes: {} };
 const WA_NUMBERS = 'xm.whatsappNumbers';
 const WA_ALSO_ACCOUNT = 'xm.whatsappAlsoAccount';
+const PARK_ALARM = 'xm.parkAlarm';
 const splitNumbers = (value) =>
   (value || '')
     .split(/[,;\s]+/)
@@ -81,6 +83,10 @@ export default function Devices() {
       else delete attributes[WA_NUMBERS];
       if (numbers && attributes[WA_ALSO_ACCOUNT]) attributes[WA_ALSO_ACCOUNT] = true;
       else delete attributes[WA_ALSO_ACCOUNT];
+      if (attributes[PARK_ALARM]) attributes[PARK_ALARM] = true;
+      else delete attributes[PARK_ALARM];
+      if (!attributes[ICON_KEY] || attributes[ICON_KEY] === 'sedan') delete attributes[ICON_KEY];
+      if (!attributes[ICON_COLOR_KEY] || attributes[ICON_COLOR_KEY] === STATUS_COLOR) delete attributes[ICON_COLOR_KEY];
       const { whatsapp, ...rest } = editing;
       const body = { ...rest, attributes, name: editing.name.trim(), uniqueId: imei, phone: editing.phone.trim() || null };
       if (!body.id) delete body.id;
@@ -156,6 +162,60 @@ export default function Devices() {
           <Text style={[ui.label, { marginTop: 12 }]}>Model</Text>
           <Chips options={models} value={editing.model || models[0].value} onChange={(value) => setEditing({ ...editing, model: value })} />
         </Card>
+        <Card title="Icon on the map" subtitle="Choose the vehicle type and colour. By status = green moving, blue parked, red offline.">
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+            {vehicleTypes.map((type) => {
+              const active = (editing.attributes?.[ICON_KEY] || 'sedan') === type.key;
+              const color = editing.attributes?.[ICON_COLOR_KEY];
+              const shown = color && color !== STATUS_COLOR ? color : 'green';
+              return (
+                <Pressable
+                  key={type.key}
+                  onPress={() => setEditing({ ...editing, attributes: { ...editing.attributes, [ICON_KEY]: type.key } })}
+                  style={{
+                    width: 72,
+                    alignItems: 'center',
+                    paddingVertical: 6,
+                    borderRadius: 12,
+                    borderWidth: 2,
+                    borderColor: active ? colors.teal : 'transparent',
+                    backgroundColor: active ? colors.subtle : 'transparent',
+                  }}
+                >
+                  <Image source={vehicleImages[`${type.key}-${shown}`]} style={{ width: 44, height: 44 }} />
+                  <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2 }} numberOfLines={1}>
+                    {type.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={[ui.label, { marginTop: 12 }]}>Colour</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+            {[STATUS_COLOR, ...fixedColors].map((name) => {
+              const active = (editing.attributes?.[ICON_COLOR_KEY] || STATUS_COLOR) === name;
+              return (
+                <Pressable
+                  key={name}
+                  onPress={() => setEditing({ ...editing, attributes: { ...editing.attributes, [ICON_COLOR_KEY]: name } })}
+                  style={{
+                    height: 34,
+                    minWidth: 34,
+                    paddingHorizontal: name === STATUS_COLOR ? 12 : 0,
+                    borderRadius: 17,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: name === STATUS_COLOR ? colors.subtle : iconColors[name],
+                    borderWidth: active ? 3 : 1,
+                    borderColor: active ? colors.teal : colors.border,
+                  }}
+                >
+                  {name === STATUS_COLOR && <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>By status</Text>}
+                </Pressable>
+              );
+            })}
+          </View>
+        </Card>
         <Card
           title="WhatsApp alerts for this vehicle"
           subtitle="Alerts of this vehicle go to these numbers only (e.g. the family member who drives it). Leave empty to use the account numbers from SMS & WhatsApp alerts."
@@ -178,6 +238,16 @@ export default function Devices() {
           )}
           <Text style={[ui.help, { marginTop: 8 }]}>
             Which alerts are sent (ACC, overspeed, geofence, …) is chosen in Me → SMS & WhatsApp alerts.
+          </Text>
+        </Card>
+        <Card title="Theft protection" subtitle="Alert when this vehicle moves while ACC is OFF (towing, theft at night).">
+          <SwitchRow
+            label="Alert if moved while ACC is OFF"
+            value={Boolean(editing.attributes?.[PARK_ALARM])}
+            onValueChange={(on) => setEditing({ ...editing, attributes: { ...editing.attributes, [PARK_ALARM]: on } })}
+          />
+          <Text style={[ui.help, { marginTop: 8 }]}>
+            Sent as an alarm: keep "Alarms" switched on in Me → SMS & WhatsApp alerts. Needs the ignition (ACC) wire.
           </Text>
         </Card>
         {editing.id && setupCard(editing)}

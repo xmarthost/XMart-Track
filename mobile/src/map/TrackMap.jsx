@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Camera, GeoJSONSource, Images, Layer, Map, RasterSource } from '@maplibre/maplibre-react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { carImages } from '../state/status';
+import { vehicleImages } from './vehicleIcons';
 import { logInfo, logWarn } from '../state/log';
 import { TRAFFIC_OPACITY, buildStyle, trafficTiles } from './mapStyles';
 import { dismissMapNotice, initMapStyle, useMapState } from './mapState';
@@ -10,6 +11,7 @@ import { trimLineToCar, useMatchedTrail } from './roadMatch';
 import { useSmoothCars } from './smoothMotion';
 
 const carIcons = {
+  ...vehicleImages,
   'car-moving': carImages.moving,
   'car-static': carImages.static,
   'car-offline': carImages.offline,
@@ -22,10 +24,12 @@ export const carsGeoJSON = (cars) => ({
   features: cars.map((car) => ({
     type: 'Feature',
     id: car.id,
-    properties: { id: car.id, icon: `car-${car.state}`, course: car.course || 0 },
+    properties: { id: car.id, icon: car.icon || `car-${car.state}`, opacity: car.opacity ?? 1, course: car.course || 0 },
     geometry: { type: 'Point', coordinates: [car.longitude, car.latitude] },
   })),
 });
+
+const ICON_SCALE = ['case', ['==', ['slice', ['get', 'icon'], 0, 4], 'car-'], 1, 0.5];
 
 const emptyCollection = { type: 'FeatureCollection', features: [] };
 
@@ -126,12 +130,19 @@ const TrackMap = forwardRef(function TrackMap(
             layout={{
               'icon-image': ['get', 'icon'],
               // smaller cars when zoomed out over a city or country
-              'icon-size': ['interpolate', ['linear'], ['zoom'], 4, 0.45, 10, 0.7, 14, 0.9, 16, 1],
+              // vehicle icons are 96 px (the old car icons 48 px)
+              // zoom must stay the top-level input; old 48 px car icons x1, 96 px vehicle icons x0.5
+              'icon-size': ['interpolate', ['linear'], ['zoom'],
+                4, ['*', 0.45, ICON_SCALE],
+                10, ['*', 0.7, ICON_SCALE],
+                14, ['*', 0.9, ICON_SCALE],
+                16, ['*', 1, ICON_SCALE]],
               'icon-rotate': ['get', 'course'],
               'icon-rotation-alignment': 'map',
               'icon-allow-overlap': true,
               'icon-ignore-placement': true,
             }}
+            paint={{ 'icon-opacity': ['get', 'opacity'] }}
           />
         </GeoJSONSource>
         {children}
