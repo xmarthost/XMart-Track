@@ -39,6 +39,14 @@ export const mapStyles = [
     satellite: false,
   },
   {
+    id: 'freeDark',
+    label: 'Free Dark (Carto)',
+    group: 'Free',
+    tiles: [`https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=${CARTO_KEY}`],
+    attribution: '© OpenStreetMap © CARTO',
+    satellite: false,
+  },
+  {
     id: 'freeOsm',
     label: 'Free OpenStreetMap',
     group: 'Free',

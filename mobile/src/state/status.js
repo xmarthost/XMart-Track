@@ -1,10 +1,18 @@
+import { palette } from './theme';
+
+// theme colours (Light / XMart Teal / Dark, see theme.js) + fixed status colours
 export const colors = {
-  teal: '#007080',
-  tealDark: '#0A4A55',
-  background: '#F4F8FD',
-  text: '#0F172A',
-  muted: '#475569',
-  border: '#E2E8F0',
+  teal: palette.teal,
+  tealDark: palette.tealDark,
+  background: palette.background,
+  card: palette.card,
+  text: palette.text,
+  muted: palette.muted,
+  border: palette.border,
+  subtle: palette.subtle,
+  header: palette.header,
+  headerText: palette.headerText,
+  dark: palette.dark,
   moving: '#16A34A',
   static: '#2563EB',
   offline: '#DC2626',

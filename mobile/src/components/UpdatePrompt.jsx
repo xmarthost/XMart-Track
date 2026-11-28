@@ -86,7 +86,7 @@ export default function UpdatePrompt() {
   return (
     <Modal transparent animationType="fade" visible onRequestClose={() => !downloading && setUpdate(null)}>
       <View style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.55)', justifyContent: 'center', padding: 24 }}>
-        <View style={{ backgroundColor: '#FFF', borderRadius: 18, padding: 20, maxHeight: '80%' }}>
+        <View style={{ backgroundColor: colors.card, borderRadius: 18, padding: 20, maxHeight: '80%' }}>
           <View style={{ alignItems: 'center', marginBottom: 12 }}>
             <View
               style={{
@@ -103,7 +103,9 @@ export default function UpdatePrompt() {
             <Text style={{ fontSize: 19, fontWeight: '800', color: colors.text, marginTop: 10 }}>
               New version released
             </Text>
-            <Text style={{ color: colors.muted, marginTop: 2 }}>Version {update.versionCode}</Text>
+            <Text style={{ color: colors.muted, marginTop: 2 }}>
+              {update.versionName ? `Version ${update.versionName} (build ${update.versionCode})` : `Version ${update.versionCode}`}
+            </Text>
           </View>
           {notes.length > 0 && (
             <>

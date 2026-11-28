@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
+import { savedLayout } from '../state/theme';
 import { login, getBase } from '../api/server';
 import { useApp } from '../state/AppState';
 import { colors } from '../state/status';
@@ -31,7 +32,7 @@ export default function Login() {
     try {
       const user = await login(server, email.trim(), password);
       setUser(user);
-      router.replace('/(tabs)');
+      router.replace(savedLayout() ? '/(tabs)' : '/appearance?first=1');
     } catch {
       setError('Login failed. Check email and password.');
     } finally {
@@ -107,7 +108,7 @@ const styles = StyleSheet.create({
   },
   logo: { width: 76, height: 76 },
   title: { marginTop: 16, marginBottom: 24, fontSize: 28, fontWeight: '800', color: '#FFF' },
-  card: { width: '100%', backgroundColor: '#FFF', borderRadius: 20, padding: 20, elevation: 6 },
+  card: { width: '100%', backgroundColor: colors.card, borderRadius: 20, padding: 20, elevation: 6 },
   cardTitle: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 12 },
   input: {
     borderWidth: 1,

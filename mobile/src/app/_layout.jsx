@@ -42,14 +42,14 @@ function Gate() {
       if (user) setUser(user);
       setReady(true);
       SplashScreen.hideAsync().catch(() => {});
-      router.replace(user ? '/(tabs)' : '/login');
+      router.replace(user ? (savedLayout() ? '/(tabs)' : '/appearance?first=1') : '/login');
     })();
   }, [setUser]);
 
   return (
     <>
       <StatusBar style="light" backgroundColor={colors.tealDark} />
-      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="login" />
         <Stack.Screen name="(tabs)" />
@@ -63,6 +63,8 @@ function Gate() {
         <Stack.Screen name="geofences" options={headerOptions('Geofences')} />
         <Stack.Screen name="reports" options={headerOptions('Reports')} />
         <Stack.Screen name="overview" options={headerOptions('Fleet overview')} />
+        <Stack.Screen name="appearance" options={headerOptions('Layout & theme')} />
+        <Stack.Screen name="device/[id]/trips" options={headerOptions('Trips')} />
       </Stack>
       <EventBanner />
       {ready && <UpdatePrompt />}
@@ -80,6 +82,7 @@ const headerOptions = (title) => ({
   title,
   headerTitleAlign: 'center',
   headerTintColor: colors.text,
+  headerStyle: { backgroundColor: colors.card },
 });
 
 export default function RootLayout() {

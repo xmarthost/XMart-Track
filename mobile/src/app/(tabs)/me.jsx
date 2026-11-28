@@ -19,6 +19,7 @@ export default function Me() {
     ['notifications-active', 'Notification setup (app closed)', () => router.push('/notification-setup')],
     ['devices', 'Devices (add by IMEI)', () => router.push('/devices')],
     ['hexagon', 'Geofences', () => router.push('/geofences')],
+    ['dashboard-customize', 'Layout & theme', () => router.push('/appearance')],
     ['security', 'Account, password & delete account', () => router.push('/account')],
     ['policy', 'Privacy policy', () => Linking.openURL(`${getBase()}/privacy.html`)],
     ['bug-report', 'Diagnostics & logs', () => router.push('/diagnostics')],
@@ -40,7 +41,7 @@ export default function Me() {
         </View>
         <View style={styles.card}>
           {items.map(([icon, label, onPress]) => (
-            <Pressable key={label} style={styles.item} onPress={onPress} android_ripple={{ color: '#E2E8F0' }}>
+            <Pressable key={label} style={styles.item} onPress={onPress} android_ripple={{ color: colors.border }}>
               <MaterialIcons name={icon} size={22} color={colors.teal} />
               <Text style={styles.itemText}>{label}</Text>
               <MaterialIcons name="chevron-right" size={22} color="#94A3B8" />
@@ -62,7 +63,7 @@ export default function Me() {
           </Pressable>
         </View>
         <Text style={{ textAlign: 'center', color: colors.muted, marginTop: 16, marginBottom: 8 }}>
-          XMart Track · Version {Constants.expoConfig?.android?.versionCode || Constants.expoConfig?.ios?.buildNumber || '-'}
+          XMart Track · Version {Constants.expoConfig?.version} (build {Constants.expoConfig?.android?.versionCode || Constants.expoConfig?.ios?.buildNumber || '-'})
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 30, color: '#FFF', fontWeight: '700' },
   name: { fontSize: 22, fontWeight: '800', color: '#FFF' },
   email: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
-  card: { margin: 12, marginBottom: 0, borderRadius: 16, backgroundColor: '#FFF', overflow: 'hidden' },
+  card: { margin: 12, marginBottom: 0, borderRadius: 16, backgroundColor: colors.card, overflow: 'hidden' },
   item: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: colors.background },
   itemText: { flex: 1, fontSize: 16, fontWeight: '500', color: colors.text },
 });

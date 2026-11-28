@@ -184,7 +184,7 @@ export default function Diagnostics() {
 }
 
 const styles = StyleSheet.create({
-  card: { margin: 12, marginBottom: 0, padding: 12, borderRadius: 14, backgroundColor: '#FFF' },
+  card: { margin: 12, marginBottom: 0, padding: 12, borderRadius: 14, backgroundColor: colors.card },
   infoRow: { flexDirection: 'row', paddingVertical: 4, gap: 12 },
   infoLabel: { width: 130, color: colors.muted, fontWeight: '500' },
   infoValue: { flex: 1, color: colors.text, fontWeight: '600' },

@@ -7,7 +7,7 @@ const Button = ({ icon, family = 'm', onPress, active, disabled }) => {
   const Icon = family === 'c' ? MaterialCommunityIcons : MaterialIcons;
   return (
     <Pressable style={[styles.button, disabled && { opacity: 0.4 }]} onPress={onPress} disabled={disabled}>
-      <Icon name={icon} size={24} color={active ? colors.teal : '#1F2937'} />
+      <Icon name={icon} size={24} color={active ? colors.teal : colors.text} />
     </Pressable>
   );
 };
@@ -35,11 +35,11 @@ export default function MapButtons({
         <Button icon="map" onPress={onMapType} />
         <View style={[styles.pair, !canSwitch && { opacity: 0.45 }]}>
           <Pressable style={styles.pairButton} onPress={onPrevious} disabled={!canSwitch}>
-            <MaterialIcons name="keyboard-arrow-up" size={26} color="#1F2937" />
+            <MaterialIcons name="keyboard-arrow-up" size={26} color={colors.text} />
           </Pressable>
           <View style={styles.divider} />
           <Pressable style={styles.pairButton} onPress={onNext} disabled={!canSwitch}>
-            <MaterialIcons name="keyboard-arrow-down" size={26} color="#1F2937" />
+            <MaterialIcons name="keyboard-arrow-down" size={26} color={colors.text} />
           </Pressable>
         </View>
       </View>
@@ -62,12 +62,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
     ...shadow,
   },
-  pair: { width: 44, borderRadius: 10, backgroundColor: '#FFF', ...shadow },
+  pair: { width: 44, borderRadius: 10, backgroundColor: colors.card, ...shadow },
   pairButton: { height: 40, alignItems: 'center', justifyContent: 'center' },
   divider: { height: 1, marginHorizontal: 8, backgroundColor: colors.border },
 });

@@ -2,6 +2,16 @@
 // GOOGLE_MAPS_API_KEY: Google key used for street addresses (Geocoding API); a GitHub secret overrides the built-in test key.
 // Maps are drawn by MapLibre (Google or free tiles), not the Google Maps Android SDK.
 // XMART_SERVER: server address used by default on the login screen.
+const fs = require('fs');
+const path = require('path');
+// one version number for server, web and apps (VERSION at the repository root), e.g. 2.0.0
+const appVersion = (() => {
+  try {
+    return fs.readFileSync(path.join(__dirname, '..', 'VERSION'), 'utf8').trim();
+  } catch {
+    return '1.0.0';
+  }
+})();
 const googleKey = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyB5JIXYxqF_yZdrzLBSIHxqJO4tu9c1fOk';
 // XMART_STORE=play builds the Google Play version: Play updates the app itself, so the GitHub
 // self-update and the permissions Play restricts are left out.
@@ -15,7 +25,7 @@ module.exports = {
     name: 'XMart Track',
     slug: 'xmart-track',
     scheme: 'xmarttrack',
-    version: '1.0.0',
+    version: appVersion,
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',

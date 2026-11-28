@@ -38,7 +38,7 @@ export const Button = ({ title, onPress, icon, color = colors.teal, outline, loa
     disabled={disabled || loading}
     style={[
       ui.button,
-      outline ? { borderWidth: 1.5, borderColor: color, backgroundColor: '#FFF' } : { backgroundColor: color },
+      outline ? { borderWidth: 1.5, borderColor: color, backgroundColor: colors.card } : { backgroundColor: color },
       (disabled || loading) && { opacity: 0.55 },
       style,
     ]}
@@ -76,7 +76,7 @@ export const Empty = ({ text }) => <Text style={ui.empty}>{text}</Text>;
 export const ui = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: 12, gap: 12, paddingBottom: 40 },
-  card: { backgroundColor: '#FFF', borderRadius: 16, padding: 14 },
+  card: { backgroundColor: colors.card, borderRadius: 16, padding: 14 },
   cardTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
   cardSubtitle: { fontSize: 13, color: colors.muted, marginTop: 3 },
   label: { fontSize: 13, fontWeight: '600', color: colors.muted, marginBottom: 5 },
@@ -88,7 +88,7 @@ export const ui = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 15,
     color: colors.text,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.card,
   },
   help: { fontSize: 12, color: '#94A3B8', marginTop: 4 },
   switchRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
@@ -111,7 +111,7 @@ export const ui = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14,
     color: colors.text,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.subtle,
     borderRadius: 8,
     padding: 10,
     marginTop: 8,

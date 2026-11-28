@@ -1,5 +1,29 @@
 # Versions
 
+From 2.0.0 on, every update has ONE version number for server, web and apps, kept in the file `VERSION`.
+When `VERSION` changes, GitHub Actions publishes the release **vX.Y.Z** with:
+- the Android APK of that version,
+- the web interface build (for VPS that cannot build it),
+- the list of changes since the previous version,
+- the command to install exactly that server version.
+
+Roll back the server to a version (database, users and settings are kept):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/xmarthost/XMart-Track/xmart-web-ui/install.sh | bash -s -- --version v2.0.0 --domain xmarttrack.site
+```
+
+Roll back the app: download `XMartTrack.apk` from the release vX.Y.Z and install it over the current app.
+
+All releases: https://github.com/xmarthost/XMart-Track/releases
+
+| Version | Date | What it is |
+|---|---|---|
+| v2.0.0 | 2026-11-28 | Phase 1: 5 layouts, Light / XMart Teal / Dark themes, vehicle icons and colours, trips report, live share link, moved-while-parked alarm, automatic history cleanup, version releases. |
+
+## Earlier versions (before 2.0.0, by commit)
+
+
 Each server version below is a commit. To install an older (or newer) version on the VPS, run the installer
 with `--version <full commit hash>`; the database, admin account and settings are kept. To go back to the
 newest code, run it with `--branch xmart-web-ui`.

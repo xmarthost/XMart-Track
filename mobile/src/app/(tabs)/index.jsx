@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useApp } from '../../state/AppState';
 import { colors, getState, kmh, since } from '../../state/status';
@@ -11,6 +12,9 @@ import TrackMap from '../../map/TrackMap';
 import { moveDuration } from '../../map/smoothMotion';
 import { findStyle, mapStyles } from '../../map/mapStyles';
 import { chooseMapStyle, setTraffic, useMapState } from '../../map/mapState';
+import { vehicleIcon } from '../../state/vehicleLook';
+import { useLayout } from '../../state/theme';
+import { DashboardHome, SimpleHome, SplitHome } from '../../components/HomeLayouts';
 
 const tabs = [
   { key: 'all', label: 'All' },
@@ -19,10 +23,14 @@ const tabs = [
   { key: 'unknown', label: 'Inactive' },
 ];
 const STREET_ZOOM = 16;
+const homeLabel = { classic: 'List', list: 'List', dashboard: 'Dashboard', split: 'Split', simple: 'Vehicles' };
 
 export default function Monitor() {
   const { user, devices, positions, trails, selectedId, setSelectedId, refresh } = useApp();
-  const [view, setView] = useState('list');
+  const layout = useLayout();
+  // 'list' = the layout's home screen, 'map' = the full map; Classic opens on the map
+  const [view, setView] = useState(layout === 'classic' ? 'map' : 'list');
+  const [focusId, setFocusId] = useState(null);
   const [tab, setTab] = useState('all');
   const [keyword, setKeyword] = useState('');
   const { chosen: mapStyle, active: activeStyle, traffic } = useMapState();
@@ -113,6 +121,16 @@ export default function Monitor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sheetHeight]);
 
+  // a new layout chosen in Layout & theme: show its home screen (Classic: the map)
+  const firstLayout = useRef(true);
+  useEffect(() => {
+    if (firstLayout.current) {
+      firstLayout.current = false;
+      return;
+    }
+    setView(layout === 'classic' ? 'map' : 'list');
+  }, [layout]);
+
   // a vehicle chosen elsewhere (alert banner, overview) opens on the map
   useEffect(() => {
     if (selectedId) setView('map');
@@ -125,6 +143,25 @@ export default function Monitor() {
     setSelectedId(id);
     lastCenteredRef.current = null;
     setView('map');
+  };
+
+  // home layouts with the map in a window (Dashboard, Split): center / fit inside that window
+  const focusIn = (id, pad) => {
+    const position = positions[id];
+    setFocusId(id);
+    if (position) {
+      cameraRef.current?.easeTo({ center: [position.longitude, position.latitude], zoom: STREET_ZOOM, bearing: 0, padding: pad, duration: 500 });
+    }
+  };
+  const fitIn = (pad) => {
+    const coordinates = withPositions.map((d) => positions[d.id]);
+    if (coordinates.length === 1) {
+      cameraRef.current?.easeTo({ center: [coordinates[0].longitude, coordinates[0].latitude], zoom: 14, bearing: 0, padding: pad, duration: 500 });
+    } else if (coordinates.length > 1) {
+      const lngs = coordinates.map((p) => p.longitude);
+      const lats = coordinates.map((p) => p.latitude);
+      cameraRef.current?.fitBounds([Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)], { padding: pad, bearing: 0, duration: 600 });
+    }
   };
 
   const switchVehicle = (step) => {
@@ -155,6 +192,8 @@ export default function Monitor() {
       longitude: position.longitude,
       course: position.course,
       state: getState(device, position),
+      icon: vehicleIcon(device, getState(device, position)).key,
+      opacity: vehicleIcon(device, getState(device, position)).opacity,
     };
   });
 
@@ -179,10 +218,10 @@ export default function Monitor() {
       <Pressable
         style={[styles.card, selectedId === item.id && styles.cardSelected]}
         onPress={() => openVehicle(item.id)}
-        android_ripple={{ color: '#E2E8F0' }}
+        android_ripple={{ color: colors.border }}
       >
         <View style={[styles.avatar, { backgroundColor: `${colors[state]}1F` }]}>
-          <MaterialIcons name="directions-car" size={26} color={colors[state]} />
+          <Image source={vehicleIcon(item, state).image} style={{ width: 38, height: 38 }} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.cardName} numberOfLines={1}>
@@ -205,12 +244,15 @@ export default function Monitor() {
       <View style={styles.header}>
         <Image source={require('../../../assets/icon.png')} style={styles.headerIcon} />
         <Text style={styles.headerTitle}>{user?.name}</Text>
+        <Pressable style={styles.headerAction} onPress={() => router.push('/appearance')} hitSlop={10}>
+          <MaterialIcons name="dashboard-customize" size={24} color={colors.headerText} />
+        </Pressable>
       </View>
       <View style={styles.segment}>
         {['list', 'map'].map((key) => (
           <Pressable key={key} style={styles.segmentItem} onPress={() => setView(key)}>
             <Text style={[styles.segmentText, view === key && styles.segmentActive]}>
-              {key === 'list' ? 'List' : 'Map'}
+              {key === 'map' ? 'Map' : homeLabel[layout]}
             </Text>
             {view === key && <View style={styles.segmentBar} />}
           </Pressable>
@@ -228,6 +270,7 @@ export default function Monitor() {
             trailCarId={selectedId}
             onCarPress={openVehicle}
           />
+          {!(view === 'list' && (layout === 'dashboard' || layout === 'split')) && (
           <MapButtons
             onRefresh={() => refresh().catch(() => {})}
             onMapType={() => setMapTypeOpen(true)}
@@ -241,7 +284,8 @@ export default function Monitor() {
             traffic={traffic}
             onTraffic={() => setTraffic(!traffic)}
           />
-          {selected && (
+          )}
+          {selected && view === 'map' && (
             <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
               <VehicleSheet
                 device={selected}
@@ -253,7 +297,16 @@ export default function Monitor() {
           )}
         </View>
 
-        {view === 'list' && (
+        {view === 'list' && layout === 'dashboard' && (
+          <DashboardHome list={list} positions={positions} onOpen={openVehicle} onFit={fitIn} />
+        )}
+        {view === 'list' && layout === 'split' && (
+          <SplitHome list={list} positions={positions} onOpen={openVehicle} onFocus={focusIn} onFit={fitIn} focusId={focusId} />
+        )}
+        {view === 'list' && layout === 'simple' && (
+          <SimpleHome list={list} positions={positions} onOpen={openVehicle} refresh={refresh} />
+        )}
+        {view === 'list' && (layout === 'classic' || layout === 'list') && (
           <View style={[StyleSheet.absoluteFill, styles.listLayer]}>
             <View style={styles.search}>
               <MaterialIcons name="search" size={22} color={colors.muted} />
@@ -333,10 +386,11 @@ export default function Monitor() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FFF' },
-  header: { alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },
+  root: { flex: 1, backgroundColor: colors.card },
+  header: { alignItems: 'center', justifyContent: 'center', paddingVertical: 10, backgroundColor: colors.header },
+  headerAction: { position: 'absolute', right: 16 },
   headerIcon: { position: 'absolute', left: 16, width: 28, height: 28 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: colors.headerText },
   segment: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border },
   segmentItem: { flex: 1, alignItems: 'center', paddingVertical: 10 },
   segmentText: { fontSize: 16, color: colors.muted, fontWeight: '600' },
@@ -350,7 +404,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     paddingHorizontal: 14,
     borderRadius: 24,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.card,
     elevation: 2,
   },
   searchInput: { flex: 1, paddingVertical: 10, paddingHorizontal: 8, fontSize: 15, color: colors.text },
@@ -366,7 +420,7 @@ const styles = StyleSheet.create({
     marginVertical: 5,
     padding: 12,
     borderRadius: 16,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.card,
     elevation: 2,
   },
   cardSelected: { borderWidth: 2, borderColor: colors.teal },
@@ -376,7 +430,7 @@ const styles = StyleSheet.create({
   statePill: { fontSize: 13, fontWeight: '700', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, overflow: 'hidden' },
   empty: { textAlign: 'center', color: colors.muted, marginTop: 40 },
   backdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.35)', justifyContent: 'center', padding: 40 },
-  menu: { backgroundColor: '#FFF', borderRadius: 16, paddingVertical: 8 },
+  menu: { backgroundColor: colors.card, borderRadius: 16, paddingVertical: 8 },
   menuItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 14 },
   menuText: { fontSize: 16, color: colors.text, fontWeight: '500', flex: 1 },
   menuGroup: { fontSize: 12, fontWeight: '700', color: colors.muted, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 2, textTransform: 'uppercase' },

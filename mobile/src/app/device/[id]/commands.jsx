@@ -176,7 +176,7 @@ export default function Commands() {
                 key={item.label}
                 style={[styles.item, index === group.items.length - 1 && { borderBottomWidth: 0 }]}
                 onPress={() => open(item)}
-                android_ripple={{ color: '#E2E8F0' }}
+                android_ripple={{ color: colors.border }}
               >
                 <View style={[styles.itemIcon, { backgroundColor: item.danger ? '#FEE2E2' : '#E6F4F5' }]}>
                   <MaterialIcons name={item.icon} size={20} color={item.danger ? colors.offline : colors.teal} />
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   deviceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   dot: { width: 9, height: 9, borderRadius: 5 },
   subtitle: { color: colors.muted, fontWeight: '600' },
-  group: { backgroundColor: '#FFF', borderRadius: 16, overflow: 'hidden', paddingBottom: 2 },
+  group: { backgroundColor: colors.card, borderRadius: 16, overflow: 'hidden', paddingBottom: 2 },
   groupTitle: { fontSize: 16, fontWeight: '800', color: colors.text, margin: 14, marginBottom: 6, paddingLeft: 8, borderLeftWidth: 3, borderLeftColor: colors.teal },
   item: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.background },
   itemIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
@@ -291,13 +291,13 @@ const styles = StyleSheet.create({
   more: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.background },
   moreText: { color: colors.teal, fontWeight: '700' },
   backdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.45)' },
-  sheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 18, paddingBottom: 26 },
+  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 18, paddingBottom: 26 },
   grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: 12 },
   sheetTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
   warning: { marginTop: 8, padding: 10, borderRadius: 10, backgroundColor: '#FEE2E2', color: colors.offline, fontWeight: '600' },
   fieldLabel: { fontSize: 13, fontWeight: '600', color: colors.muted, marginBottom: 5 },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: colors.text },
-  code: { fontFamily: 'monospace', fontWeight: '700', fontSize: 15, color: colors.text, backgroundColor: '#F1F5F9', borderRadius: 8, padding: 10 },
+  code: { fontFamily: 'monospace', fontWeight: '700', fontSize: 15, color: colors.text, backgroundColor: colors.subtle, borderRadius: 8, padding: 10 },
   note: { marginTop: 10, fontSize: 13, color: colors.muted },
   result: { marginTop: 10, fontSize: 14, fontWeight: '700' },
   buttons: { flexDirection: 'row', gap: 8, marginTop: 16 },

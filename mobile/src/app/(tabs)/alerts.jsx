@@ -8,6 +8,7 @@ import { useApp } from '../../state/AppState';
 import { colors, eventLabels, formatDateTime, kmh } from '../../state/status';
 import TrackMap from '../../map/TrackMap';
 import { Button } from '../../components/ui';
+import { vehicleIcon } from '../../state/vehicleLook';
 
 const ranges = { today: 0, yesterday: 1, week: 6 };
 // technical events that are not vehicle alerts
@@ -76,7 +77,7 @@ function AlertDetails({ event, onClose }) {
           <TrackMap
             style={{ flex: 1 }}
             initialViewState={{ center: [position.longitude, position.latitude], zoom: 16 }}
-            cars={[{ id: event.deviceId, latitude: position.latitude, longitude: position.longitude, course: position.course, state }]}
+            cars={[{ id: event.deviceId, latitude: position.latitude, longitude: position.longitude, course: position.course, state, icon: vehicleIcon(devices[event.deviceId], state).key }]}
           />
         ) : (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -232,21 +233,21 @@ export default function Alerts() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  title: { fontSize: 20, fontWeight: '800', textAlign: 'center', paddingVertical: 12, color: colors.text, backgroundColor: '#FFF' },
-  chips: { flexDirection: 'row', gap: 8, padding: 12, paddingBottom: 4, backgroundColor: '#FFF' },
+  title: { fontSize: 20, fontWeight: '800', textAlign: 'center', paddingVertical: 12, color: colors.text, backgroundColor: colors.card },
+  chips: { flexDirection: 'row', gap: 8, padding: 12, paddingBottom: 4, backgroundColor: colors.card },
   chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: colors.background },
   chipActive: { backgroundColor: colors.teal },
   chipText: { fontWeight: '600', color: colors.muted },
-  card: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 16, backgroundColor: '#FFF', elevation: 1 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 16, backgroundColor: colors.card, elevation: 1 },
   icon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   type: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.text },
   time: { fontSize: 12, color: colors.muted, fontWeight: '500' },
   device: { fontSize: 14, color: colors.muted, marginTop: 4, fontWeight: '500' },
   empty: { textAlign: 'center', color: colors.muted, marginTop: 40 },
-  detailHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#FFF' },
+  detailHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: colors.card },
   detailTitle: { fontSize: 19, fontWeight: '700', color: colors.text },
-  detailCard: { margin: 12, marginTop: -40, padding: 16, borderRadius: 16, backgroundColor: '#FFF', elevation: 6 },
+  detailCard: { margin: 12, marginTop: -40, padding: 16, borderRadius: 16, backgroundColor: colors.card, elevation: 6 },
   detailName: { flex: 1, fontSize: 20, fontWeight: '800', color: colors.text },
   detailType: { fontSize: 15, fontWeight: '600', color: colors.muted },
   detailLine: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 10 },

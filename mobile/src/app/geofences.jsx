@@ -17,6 +17,7 @@ import {
 } from '../state/geofenceSchedule';
 import TrackMap from '../map/TrackMap';
 import { Button, Card, Chips, Empty, Field, SwitchRow, ui, useContentStyle } from '../components/ui';
+import { vehicleIcon } from '../state/vehicleLook';
 
 const RED = '#DC2626';
 const radii = [100, 200, 500, 1000, 3000].map((r) => ({ value: r, label: r < 1000 ? `${r} m` : `${r / 1000} km` }));
@@ -157,6 +158,7 @@ export default function Geofences() {
       longitude: positions[d.id].longitude,
       course: positions[d.id].course,
       state: getState(d, positions[d.id]),
+      icon: vehicleIcon(d, getState(d, positions[d.id])).key,
     }));
 
   const saved = useMemo(
@@ -679,7 +681,7 @@ const styles = StyleSheet.create({
   badge: { fontSize: 11, fontWeight: '700', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
   icon: { paddingHorizontal: 4 },
   backdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36, gap: 12 },
+  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36, gap: 12 },
   sheetTitle: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 4 },
   option: {
     flexDirection: 'row',

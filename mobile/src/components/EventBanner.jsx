@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 14,
     borderLeftWidth: 5,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.card,
     elevation: 12,
   },
   icon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
