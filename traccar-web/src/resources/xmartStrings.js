@@ -177,7 +177,7 @@ export default {
     xmNeedsKey: 'API key required',
     xmMapLayers: 'Map layers',
     xmApiSettings: 'API & Integrations',
-    xmBackup: 'Backup (export / import)',
+    xmBackup: 'Backup & history',
     xmApiSettingsHelp:
       'Configure API keys for map providers and other services. Keys are stored on the server and used for every user.',
     xmMapProviders: 'Map providers',

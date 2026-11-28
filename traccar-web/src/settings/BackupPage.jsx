@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -10,6 +10,8 @@ import {
   Container,
   FormControlLabel,
   LinearProgress,
+  MenuItem,
+  TextField,
   Typography,
 } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
@@ -41,6 +43,42 @@ const BackupPage = () => {
   const [file, setFile] = useState(null);
   const [progress, setProgress] = useState(null);
   const [result, setResult] = useState(null);
+  const [server, setServer] = useState(null);
+  const [days, setDays] = useState('0');
+  const [saved, setSaved] = useState(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch('api/server', { signal: controller.signal })
+      .then((response) => response.json())
+      .then((value) => {
+        setServer(value);
+        setDays(String(value.attributes?.['xm.historyDays'] || 0));
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+
+  const saveRetention = async () => {
+    setSaved(null);
+    const attributes = { ...(server.attributes || {}) };
+    if (Number(days) > 0) attributes['xm.historyDays'] = Number(days);
+    else delete attributes['xm.historyDays'];
+    const response = await fetch('api/server', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...server, attributes }),
+    });
+    if (response.ok) {
+      setServer(await response.json());
+      setSaved({
+        severity: 'success',
+        text: 'Saved. Older history is deleted automatically every 6 hours.',
+      });
+    } else {
+      setSaved({ severity: 'error', text: `Save failed (${response.status})` });
+    }
+  };
 
   const runImport = () => {
     if (!file) return;
@@ -115,6 +153,40 @@ const BackupPage = () => {
               Large servers can take a few minutes; the download starts when the file is ready. Keep
               the file safe: it contains all accounts and data.
             </Typography>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Keep location history"
+            subheader="Older positions and events are deleted automatically so the disk never fills up. The latest position of every vehicle is always kept."
+          />
+          <CardContent>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+              <TextField
+                select
+                size="small"
+                label="Keep history for"
+                value={days}
+                onChange={(e) => setDays(e.target.value)}
+                sx={{ minWidth: 220 }}
+              >
+                <MenuItem value="0">Forever (never delete)</MenuItem>
+                <MenuItem value="30">30 days</MenuItem>
+                <MenuItem value="60">60 days</MenuItem>
+                <MenuItem value="90">90 days</MenuItem>
+                <MenuItem value="180">6 months</MenuItem>
+                <MenuItem value="365">1 year</MenuItem>
+              </TextField>
+              <Button variant="contained" onClick={saveRetention} disabled={!server}>
+                Save
+              </Button>
+            </Box>
+            {saved && (
+              <Alert severity={saved.severity} sx={{ mt: 2 }}>
+                {saved.text}
+              </Alert>
+            )}
           </CardContent>
         </Card>
 
