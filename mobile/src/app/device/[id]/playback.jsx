@@ -6,15 +6,17 @@ import { api } from '../../../api/server';
 import { colors, duration, formatDateTime, kmh } from '../../../state/status';
 import TrackMap from '../../../map/TrackMap';
 import { useApp } from '../../../state/AppState';
+import { vehicleIcon } from '../../../state/vehicleLook';
 
 const speeds = { Slow: 500, Medium: 200, Fast: 60 };
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export default function Playback() {
-  const { id } = useLocalSearchParams();
+  const { id, day: dayParam } = useLocalSearchParams();
   const deviceId = Number(id);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => new Date(Date.now() - i * 864e5)), []);
-  const [day, setDay] = useState(dayKey(days[0]));
+  // opened from a trip card: that day
+  const [day, setDay] = useState(typeof dayParam === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dayParam) ? dayParam : dayKey(days[0]));
   const [route, setRoute] = useState([]);
   const [segments, setSegments] = useState([]);
   const [index, setIndex] = useState(0);
@@ -22,7 +24,7 @@ export default function Playback() {
   const [speed, setSpeed] = useState('Medium');
   const [trackWidth, setTrackWidth] = useState(0);
   const cameraRef = useRef(null);
-  const { positions: livePositions } = useApp();
+  const { positions: livePositions, devices } = useApp();
   const last = livePositions[deviceId];
 
   useEffect(() => {
@@ -98,7 +100,7 @@ export default function Playback() {
         smooth={false}
         cars={
           current
-            ? [{ id: deviceId, latitude: current.latitude, longitude: current.longitude, course: current.course, state: 'moving' }]
+            ? [{ id: deviceId, latitude: current.latitude, longitude: current.longitude, course: current.course, state: 'moving', icon: vehicleIcon(devices[deviceId], 'moving').key }]
             : []
         }
       />
@@ -199,7 +201,7 @@ export default function Playback() {
 }
 
 const styles = StyleSheet.create({
-  panel: { backgroundColor: '#FFF', paddingHorizontal: 16, paddingTop: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16, marginTop: -12 },
+  panel: { backgroundColor: colors.card, paddingHorizontal: 16, paddingTop: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16, marginTop: -12 },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   muted: { color: colors.muted, fontWeight: '500' },
   controls: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10 },
@@ -216,7 +218,7 @@ const styles = StyleSheet.create({
   summary: { flexDirection: 'row', borderWidth: 1, borderColor: colors.teal, borderRadius: 12, paddingVertical: 10, marginBottom: 10 },
   summaryItem: { flex: 1, alignItems: 'center', gap: 2 },
   summaryText: { fontWeight: '700', color: colors.text },
-  segment: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: colors.background },
+  segment: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.background },
   segmentIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   segmentTime: { fontWeight: '700', color: colors.text, width: 48 },
   segmentText: { flex: 1, color: colors.muted, fontWeight: '500' },
