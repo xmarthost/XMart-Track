@@ -12,7 +12,6 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
-import { savedLayout } from '../state/theme';
 import { login, getBase } from '../api/server';
 import { useApp } from '../state/AppState';
 import { colors } from '../state/status';
@@ -32,7 +31,7 @@ export default function Login() {
     try {
       const user = await login(server, email.trim(), password);
       setUser(user);
-      router.replace(savedLayout() ? '/(tabs)' : '/appearance?first=1');
+      router.replace('/(tabs)');
     } catch {
       setError('Login failed. Check email and password.');
     } finally {
