@@ -80,6 +80,13 @@ public class Jt808ProtocolEncoder extends BaseProtocolEncoder {
                         data.writeCharSequence(command.getString(Command.KEY_DATA), StandardCharsets.US_ASCII);
                         return decoder.formatMessage(
                                 Jt808ProtocolDecoder.MSG_TRANSPARENT_DOWNLINK, id, false, data);
+                    } else if ((model != null && Jt808ProtocolDecoder.isMicodus(model))
+                            || !command.getString(Command.KEY_DATA).matches("[0-9a-fA-F]+")) {
+                        // XMart: a text command (MiCODUS: RELAY,1#, STATUS#, TIMER,10,300#) as a text message
+                        data.writeByte(1); // flag
+                        data.writeCharSequence(command.getString(Command.KEY_DATA), StandardCharsets.US_ASCII);
+                        return decoder.formatMessage(
+                                Jt808ProtocolDecoder.MSG_SEND_TEXT_MESSAGE, id, false, data);
                     } else {
                         return Unpooled.wrappedBuffer(DataConverter.parseHex(command.getString(Command.KEY_DATA)));
                     }

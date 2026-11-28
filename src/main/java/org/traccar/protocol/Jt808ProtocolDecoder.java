@@ -1659,9 +1659,37 @@ public class Jt808ProtocolDecoder extends BaseProtocolDecoder {
         return positions;
     }
 
+    static boolean isMicodus(String model) {
+        String upper = model.toUpperCase();
+        return upper.startsWith("MV") || upper.startsWith("ML") || upper.contains("MICODUS");
+    }
+
+    private Position decodeTextReply(DeviceSession deviceSession, ByteBuf buf, int type) {
+        // the last two bytes are the checksum and the frame end
+        byte[] bytes = new byte[Math.max(0, buf.readableBytes() - 2)];
+        buf.readBytes(bytes);
+        String text = (type >= 0x20 && type < 0x7F ? String.valueOf((char) type) : "")
+                + new String(bytes, StandardCharsets.US_ASCII);
+        text = text.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]", "").trim();
+        long printable = text.chars().filter(c -> c >= 0x20 && c < 0x7F || c == '\n' || c == '\r').count();
+        if (text.length() < 2 || printable < text.length() * 0.9) {
+            return null;
+        }
+        Position position = new Position(getProtocolName());
+        position.setDeviceId(deviceSession.getDeviceId());
+        getLastLocation(position, null);
+        position.set(Position.KEY_RESULT, text);
+        return position;
+    }
+
     private Position decodeTransparent(DeviceSession deviceSession, ByteBuf buf) {
 
         int type = buf.readUnsignedByte();
+
+        String textModel = getDeviceModel(deviceSession);
+        if (textModel != null && isMicodus(textModel)) {
+            return decodeTextReply(deviceSession, buf, type);
+        }
 
         if (type == 0x40) {
 
@@ -1958,7 +1986,8 @@ public class Jt808ProtocolDecoder extends BaseProtocolDecoder {
 
         }
 
-        return null;
+        // XMart: plain-text replies to text commands (e.g. MiCODUS: STATUS#, PARAM#, RELAY,1#)
+        return decodeTextReply(deviceSession, buf, type);
     }
 
 }

@@ -11,6 +11,11 @@ public class Jt808ProtocolDecoderTest extends ProtocolTest {
 
         var decoder = inject(new Jt808ProtocolDecoder(null));
 
+        // XMart: a text reply (e.g. MiCODUS MV710G answering RELAY,1#) in a transparent message
+        verifyDecode(decoder, binary(
+                "7e0900000a012345678901000152454c41593a31204f4be67e"),
+                position(Checks.ATTRIBUTES).attribute(Position.KEY_RESULT, "RELAY:1 OK"));
+
         verifyDecode(decoder, binary(
                 "7e0704003e0184380000500084000101003900000000000c000f01d792b7034f72e600c90000009b26101319020901040000000030011f31010ad00400000000d40164d7030100beda0105e17e"),
                 position().attribute(Position.KEY_ARCHIVE, true));
