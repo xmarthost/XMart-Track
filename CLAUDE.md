@@ -1,5 +1,7 @@
 # XMart Track — working rules
 
+- Every update the owner should be able to roll back to gets a new number in `VERSION` (2.0.0 → 2.1.0 for
+  features, 2.0.1 for fixes) and a row in `docs/VERSIONS.md`; the Android workflow then publishes release vX.Y.Z.
 - Branch `xmart-web-ui`. Each server/web push creates a GitHub release `server-v<n>`; each app push creates
   `android-v<n>` / `ios-v<n>`. Commit titles are user-facing: they appear in the app's "What's new" window
   and in the release notes, so write them in plain words.

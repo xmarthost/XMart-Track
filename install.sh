@@ -34,7 +34,7 @@ while [ $# -gt 0 ]; do
     --domain) DOMAIN="$2"; shift 2 ;;
     --email) EMAIL="$2"; shift 2 ;;
     --admin-password) ADMIN_PASSWORD="$2"; shift 2 ;;
-    --branch|--version) BRANCH="$2"; shift 2 ;; # a branch, or a full commit hash from docs/VERSIONS.md
+    --branch|--version) BRANCH="$2"; shift 2 ;; # a branch, a version (v2.0.0) or a full commit hash
     --no-ssl) SSL=0; shift ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
@@ -122,7 +122,10 @@ if ! (cd "$SRC_DIR/traccar-web" && npm ci --no-audit --no-fund --loglevel=error 
   # built on GitHub for the same source instead.
   warn "Building the web interface on this VPS failed; downloading the ready-made build from GitHub"
   WEB_TMP="$(mktemp -d)"
-  curl -fsSL -o "$WEB_TMP/web.tar.gz" "https://github.com/xmarthost/XMart-Track/releases/download/web-latest/web.tar.gz"
+  # a version tag (v2.0.0) has its own web build; otherwise the latest one
+  if [[ "$BRANCH" == v[0-9]* ]] && curl -fsSL -o "$WEB_TMP/web.tar.gz" "https://github.com/xmarthost/XMart-Track/releases/download/$BRANCH/web.tar.gz"; then :; else
+    curl -fsSL -o "$WEB_TMP/web.tar.gz" "https://github.com/xmarthost/XMart-Track/releases/download/web-latest/web.tar.gz"
+  fi
   tar -xzf "$WEB_TMP/web.tar.gz" -C "$WEB_TMP"
   if [ "$(cat "$WEB_TMP/build/TREE" 2>/dev/null)" != "$WEB_TREE" ]; then
     warn "The ready-made web interface is from a slightly different version; it is used anyway"
