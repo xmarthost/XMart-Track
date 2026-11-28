@@ -233,6 +233,24 @@ chown xmarttrack:xmarttrack "$APP_DIR"
 for item in "$APP_DIR"/*; do
   [ "$item" = "$SRC_DIR" ] || chown -R xmarttrack:xmarttrack "$item"
 done
+# memory for the GPS server (Java) and the database, by the VPS size
+RAM_MB=$(( $(awk '/MemTotal/ {print $2}' /proc/meminfo) / 1024 ))
+if [ "$RAM_MB" -ge 7500 ]; then JAVA_MAX=3g; DB_POOL=2G
+elif [ "$RAM_MB" -ge 5500 ]; then JAVA_MAX=2g; DB_POOL=1536M
+elif [ "$RAM_MB" -ge 3500 ]; then JAVA_MAX=1536m; DB_POOL=1G
+else JAVA_MAX=1g; DB_POOL=256M; fi
+log "Memory: ${RAM_MB} MB RAM -> GPS server ${JAVA_MAX}, database cache ${DB_POOL}"
+DB_CONF=/etc/mysql/mariadb.conf.d/99-xmart-track.cnf
+if [ -d /etc/mysql/mariadb.conf.d ]; then
+  NEW_DB_CONF="[mysqld]
+innodb_buffer_pool_size = ${DB_POOL}
+max_connections = 200"
+  if [ "$(cat "$DB_CONF" 2>/dev/null)" != "$NEW_DB_CONF" ]; then
+    echo "$NEW_DB_CONF" > "$DB_CONF"
+    systemctl restart mariadb || warn "MariaDB restart failed; check $DB_CONF"
+  fi
+fi
+
 cat > /etc/systemd/system/xmart-track.service <<UNIT
 [Unit]
 Description=XMart Track GPS server
@@ -243,7 +261,7 @@ Requires=mariadb.service
 Type=simple
 User=xmarttrack
 WorkingDirectory=$APP_DIR
-ExecStart=/usr/bin/java -Xms256m -Xmx1g -XX:+ExitOnOutOfMemoryError -jar tracker-server.jar conf/traccar.xml
+ExecStart=/usr/bin/java -Xms256m -Xmx$JAVA_MAX -XX:+ExitOnOutOfMemoryError -jar tracker-server.jar conf/traccar.xml
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 SuccessExitStatus=143
 # always: a backup import restarts the server on purpose
