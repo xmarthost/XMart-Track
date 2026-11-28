@@ -36,7 +36,7 @@ export default function ShareLinkModal({ device, visible, onClose }) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `deviceId=${device.id}&expiration=${encodeURIComponent(expiration)}`,
       });
-      const url = `${getBase().replace(/\/+$/, '')}/?token=${encodeURIComponent(link.token)}`;
+      const url = `${getBase().replace(/\/+$/, '')}/share.html?token=${encodeURIComponent(link.token)}`;
       const label = durations.find((d) => d.value === hours)?.label || `${hours} hours`;
       await Share.share({ message: `${device.name} – live location (valid ${label}):\n${url}` });
       setMessage({ ok: true, text: `Link created, valid for ${label}.` });

@@ -8,9 +8,9 @@ import { chooseMapStyle, getMapState } from '../map/mapState';
 import { Button, ui, useContentStyle } from '../components/ui';
 
 const layoutInfo = [
-  { id: 'classic', name: 'Classic Map', icon: 'map', who: 'One or two vehicles', text: 'Full map with the vehicle card at the bottom.' },
-  { id: 'list', name: 'List First', icon: 'view-list', who: '5+ vehicles, family', text: 'Status tabs and a list; tap a vehicle for the map.' },
-  { id: 'dashboard', name: 'Dashboard', icon: 'space-dashboard', who: 'Owners', text: "Today's km, engine time, top speed and alerts above a small map." },
+  { id: 'classic', name: 'Classic', icon: 'map', who: 'Like common tracking apps', text: 'List and Map tabs, buttons on both sides, big vehicle card with all details.' },
+  { id: 'fullmap', name: 'Full Map', icon: 'fullscreen', who: 'Everyone who wants a big map', text: 'Map on the whole screen, options in a bar at the bottom, small vehicle card.' },
+  { id: 'dashboard', name: 'Dashboard', icon: 'space-dashboard', who: 'Owners', text: "Today's km, engine time, top speed and alerts above a small map; compact map buttons." },
   { id: 'split', name: 'Split View', icon: 'vertical-split', who: 'Office, tablet', text: 'Map and list together; side by side when the phone is turned.' },
   { id: 'simple', name: 'Simple Mode', icon: 'touch-app', who: 'Elders, drivers', text: 'Big cards and big buttons: Map, Share, Playback.' },
 ];
@@ -22,7 +22,7 @@ function Preview({ id }) {
   return (
     <View style={styles.preview}>
       {id === 'classic' && (<>{map({ flex: 1 })}{block({ height: 14, marginTop: 3 })}</>)}
-      {id === 'list' && [0, 1, 2, 3].map((i) => <View key={i} style={{ height: 9, marginBottom: 3, borderRadius: 3, backgroundColor: colors.border }} />)}
+      {id === 'fullmap' && (<>{map({ flex: 1 })}<View style={{ position: 'absolute', left: 6, right: 6, bottom: 6, height: 10, borderRadius: 4, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }} /></>)}
       {id === 'dashboard' && (
         <>
           <View style={{ flexDirection: 'row', gap: 3 }}>{block({ flex: 1, height: 10 })}{block({ flex: 1, height: 10 })}</View>
@@ -59,7 +59,7 @@ export default function Appearance() {
       ) : null}
       <Text style={styles.section}>Layout</Text>
       {layoutInfo.map((item) => {
-        const active = layout === item.id;
+        const active = layout === item.id || (item.id === 'classic' && layout === 'list');
         return (
           <Pressable key={item.id} style={[styles.card, active && styles.cardActive]} onPress={() => setLayout(item.id)}>
             <Preview id={item.id} />

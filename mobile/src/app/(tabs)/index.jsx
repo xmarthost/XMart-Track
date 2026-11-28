@@ -23,13 +23,25 @@ const tabs = [
   { key: 'unknown', label: 'Inactive' },
 ];
 const STREET_ZOOM = 16;
-const homeLabel = { classic: 'List', list: 'List', dashboard: 'Dashboard', split: 'Split', simple: 'Vehicles' };
+// how the map screen looks in each layout: header + tabs, map buttons, vehicle card
+const looks = {
+  classic: { header: true, buttons: 'sides', sheet: 'full' },
+  list: { header: true, buttons: 'sides', sheet: 'full' },
+  fullmap: { header: false, buttons: 'bar', sheet: 'compact' },
+  dashboard: { header: true, buttons: 'column', sheet: 'compact' },
+  split: { header: true, buttons: 'column', sheet: 'compact' },
+  simple: { header: true, buttons: 'big', sheet: 'large' },
+};
+const BAR_SPACE = 84; // the Full Map option bar and its margin
+const homeLabel = { classic: 'List', list: 'List', fullmap: 'Vehicles', dashboard: 'Dashboard', split: 'Split', simple: 'Vehicles' };
 
 export default function Monitor() {
   const { user, devices, positions, trails, selectedId, setSelectedId, refresh } = useApp();
   const layout = useLayout();
   // 'list' = the layout's home screen, 'map' = the full map; Classic opens on the map
-  const [view, setView] = useState(layout === 'classic' ? 'map' : 'list');
+  const look = looks[layout] || looks.classic;
+  const mapFirst = layout === 'classic' || layout === 'fullmap';
+  const [view, setView] = useState(mapFirst ? 'map' : 'list');
   const [focusId, setFocusId] = useState(null);
   const [tab, setTab] = useState('all');
   const [keyword, setKeyword] = useState('');
@@ -128,7 +140,7 @@ export default function Monitor() {
       firstLayout.current = false;
       return;
     }
-    setView(layout === 'classic' ? 'map' : 'list');
+    setView(layout === 'classic' || layout === 'fullmap' ? 'map' : 'list');
   }, [layout]);
 
   // a vehicle chosen elsewhere (alert banner, overview) opens on the map
@@ -241,6 +253,8 @@ export default function Monitor() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
+      {look.header ? (
+      <>
       <View style={styles.header}>
         <Image source={require('../../../assets/icon.png')} style={styles.headerIcon} />
         <Text style={styles.headerTitle}>{user?.name}</Text>
@@ -258,6 +272,8 @@ export default function Monitor() {
           </Pressable>
         ))}
       </View>
+      </>
+      ) : null}
 
       <View style={{ flex: 1 }} onLayout={(e) => setAreaHeight(e.nativeEvent.layout.height)}>
         <View style={StyleSheet.absoluteFill}>
@@ -283,7 +299,21 @@ export default function Monitor() {
             onCenter={() => centerOn(selectedPosition || positions[withPositions[0]?.id])}
             traffic={traffic}
             onTraffic={() => setTraffic(!traffic)}
+            variant={look.buttons}
+            onList={() => setView('list')}
           />
+          )}
+          {layout === 'fullmap' && view === 'map' && (
+            <View style={styles.floatTop} pointerEvents="box-none">
+              <View style={styles.floatPill}>
+                <Image source={require('../../../assets/icon.png')} style={{ width: 24, height: 24 }} />
+                <Text style={styles.floatTitle} numberOfLines={1}>{user?.name}</Text>
+                <Text style={styles.floatCount}>{`${counts.online}/${counts.all} online`}</Text>
+                <Pressable onPress={() => router.push('/appearance')} hitSlop={10}>
+                  <MaterialIcons name="dashboard-customize" size={22} color={colors.teal} />
+                </Pressable>
+              </View>
+            </View>
           )}
           {selected && view === 'map' && (
             <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -292,6 +322,8 @@ export default function Monitor() {
                 position={selectedPosition}
                 onClose={() => setSelectedId(null)}
                 onHeight={setSheetHeight}
+                variant={look.sheet}
+                bottomOffset={layout === 'fullmap' ? BAR_SPACE : 0}
               />
             </View>
           )}
@@ -306,8 +338,16 @@ export default function Monitor() {
         {view === 'list' && layout === 'simple' && (
           <SimpleHome list={list} positions={positions} onOpen={openVehicle} refresh={refresh} />
         )}
-        {view === 'list' && (layout === 'classic' || layout === 'list') && (
+        {view === 'list' && (layout === 'classic' || layout === 'list' || layout === 'fullmap') && (
           <View style={[StyleSheet.absoluteFill, styles.listLayer]}>
+            {layout === 'fullmap' && (
+              <View style={styles.listHeader}>
+                <Pressable onPress={() => setView('map')} hitSlop={10}>
+                  <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+                </Pressable>
+                <Text style={styles.listHeaderText}>Vehicles</Text>
+              </View>
+            )}
             <View style={styles.search}>
               <MaterialIcons name="search" size={22} color={colors.muted} />
               <TextInput
@@ -396,6 +436,12 @@ const styles = StyleSheet.create({
   segmentText: { fontSize: 16, color: colors.muted, fontWeight: '600' },
   segmentActive: { color: colors.teal },
   segmentBar: { position: 'absolute', bottom: 0, width: '60%', height: 3, borderRadius: 2, backgroundColor: colors.teal },
+  floatTop: { position: 'absolute', top: 10, left: 12, right: 12, alignItems: 'center' },
+  floatPill: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.card, borderRadius: 22, paddingHorizontal: 12, paddingVertical: 8, elevation: 6, maxWidth: '100%' },
+  floatTitle: { fontSize: 15, fontWeight: '800', color: colors.text, flexShrink: 1 },
+  floatCount: { fontSize: 12, fontWeight: '700', color: colors.moving },
+  listHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 12 },
+  listHeaderText: { fontSize: 18, fontWeight: '800', color: colors.text },
   listLayer: { backgroundColor: colors.background, zIndex: 20, elevation: 30 },
   search: {
     flexDirection: 'row',

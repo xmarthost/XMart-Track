@@ -147,7 +147,7 @@ function useAccSince(deviceId, ignition) {
   return value;
 }
 
-export default function VehicleSheet({ device, position, onClose, onHeight }) {
+export default function VehicleSheet({ device, position, onClose, onHeight, variant = 'full', bottomOffset = 0 }) {
   const [expanded, setExpanded] = useState(false);
   const [sharing, setSharing] = useState(false);
   const attributes = position?.attributes || {};
@@ -216,9 +216,71 @@ export default function VehicleSheet({ device, position, onClose, onHeight }) {
     ['route', extras.today != null ? `Today ${(extras.today / 1000).toFixed(1)} km` : null],
   ].filter((row) => row[1] != null);
 
+  // compact card (Full Map, Dashboard, Split) and big card (Simple Mode); tap the handle for everything
+  if (variant !== 'full' && !expanded) {
+    const big = variant === 'large';
+    const speed = position ? `${kmh(position.speed)} km/h` : '--';
+    const acc = attributes.ignition === undefined ? null : `ACC ${attributes.ignition ? 'ON' : 'OFF'}`;
+    return (
+      <View
+        style={[styles.sheet, styles.floating, { bottom: bottomOffset }]}
+        onLayout={(e) => onHeight?.(Math.round(e.nativeEvent.layout.height) + bottomOffset)}
+      >
+        <Pressable style={styles.handle} onPress={() => setExpanded(true)}>
+          <MaterialIcons name="expand-less" size={24} color={colors.muted} />
+        </Pressable>
+        <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
+          <View style={styles.titleRow}>
+            <Text style={[styles.name, big && { fontSize: 24 }]} numberOfLines={1}>{device.name}</Text>
+            <Pressable onPress={onClose} hitSlop={10}>
+              <MaterialIcons name="close" size={big ? 28 : 22} color={colors.muted} />
+            </Pressable>
+          </View>
+          <Text style={[styles.pill, { color: colors[state], backgroundColor: `${colors[state]}1A` }, big && { fontSize: 18 }]}>
+            {stateText}
+          </Text>
+          {!big && (
+            <Text style={styles.compactMeta} numberOfLines={1}>
+              {[speed, acc, voltage.power != null ? `${Number(voltage.power).toFixed(1)} V` : null].filter(Boolean).join('  •  ')}
+            </Text>
+          )}
+          {position && (
+            <Text style={[styles.compactAddress, big && { fontSize: 17, lineHeight: 24 }]} numberOfLines={big ? 3 : 1}>
+              {address || `${position.latitude.toFixed(5)}, ${position.longitude.toFixed(5)}`}
+            </Text>
+          )}
+          {big ? (
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+              {[
+                ['navigation', 'Navigate', '#14B8A6', actions.find((a) => a.key === 'navigate').onPress],
+                ['share', 'Share', '#2563EB', () => setSharing(true)],
+                ['history', 'Playback', '#10B981', actions.find((a) => a.key === 'playback').onPress],
+              ].map(([icon, label, color, onPress]) => (
+                <Pressable key={label} style={[styles.bigAction, { backgroundColor: color }]} onPress={onPress}>
+                  <MaterialIcons name={icon} size={28} color="#FFF" />
+                  <Text style={styles.bigActionText}>{label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.chips}>
+              {[...actions, { key: 'share', label: 'Share', icon: 'share', onPress: () => setSharing(true) }].map((action) => (
+                <Pressable key={action.key} style={styles.chip} onPress={action.onPress}>
+                  <MaterialIcons name={action.icon} size={18} color={actionColors[action.key] || colors.teal} />
+                  <Text style={styles.chipText}>{action.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </View>
+        <ShareLinkModal device={device} visible={sharing} onClose={() => setSharing(false)} />
+      </View>
+    );
+  }
+
   return (
     <View
-      style={[styles.sheet, { maxHeight: expanded ? '82%' : '50%' }]}
+      style={[styles.sheet, { maxHeight: expanded ? '82%' : '50%', bottom: bottomOffset }]}
       onLayout={(e) => !expanded && onHeight?.(Math.round(e.nativeEvent.layout.height))}
     >
       <Pressable style={styles.handle} onPress={() => setExpanded(!expanded)}>
@@ -301,6 +363,14 @@ const styles = StyleSheet.create({
     elevation: 16,
   },
   handle: { alignItems: 'center', paddingTop: 4 },
+  floating: { left: 10, right: 10, borderRadius: 18 },
+  compactMeta: { marginTop: 6, fontSize: 14, fontWeight: '600', color: colors.text },
+  compactAddress: { marginTop: 4, fontSize: 13, color: colors.muted },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 16, backgroundColor: colors.subtle },
+  chipText: { fontSize: 12, fontWeight: '700', color: colors.text },
+  bigAction: { flex: 1, height: 72, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  bigActionText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
   section: { paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 8, borderBottomColor: colors.background },
   titleRow: { flexDirection: 'row', alignItems: 'center' },
   name: { flex: 1, fontSize: 20, fontWeight: '800', color: colors.text },
