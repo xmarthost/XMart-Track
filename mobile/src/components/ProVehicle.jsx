@@ -54,6 +54,11 @@ export function ProCallout({ device, position, onClose }) {
     ['ACC', attributes.ignition === undefined ? '--' : attributes.ignition ? 'ON' : 'OFF', attributes.ignition ? colors.moving : undefined],
     ['Today', extras.today != null ? `${(extras.today / 1000).toFixed(1)} km` : '--'],
     [state === 'moving' ? 'Moving' : 'Static', extras.accSince ? since(extras.accSince) : since(device.lastUpdate)],
+    // only for trackers that report them (e.g. MiCODUS MV710G: armed, door, battery %)
+    ...(attributes.armed !== undefined ? [['Armed', attributes.armed ? 'Yes' : 'No', attributes.armed ? colors.amber : undefined]] : []),
+    ...(attributes.door !== undefined ? [['Door', attributes.door ? 'Open' : 'Closed', attributes.door ? colors.offline : undefined]] : []),
+    ...(attributes.batteryLevel !== undefined ? [['Battery', `${attributes.batteryLevel}%`]] : []),
+    ...(attributes.fuel !== undefined ? [['Fuel', String(attributes.fuel)]] : []),
   ];
   return (
     <View style={styles.calloutWrap} collapsable={false}>

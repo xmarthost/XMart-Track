@@ -11,6 +11,7 @@ import { Button, Card, Chips, Code, Empty, Field, SwitchRow, ui, useContentStyle
 const models = [
   { value: 'WanWay G19S (Wired)', label: 'WanWay G19S', port: 5023 },
   { value: 'Concox / GT06 compatible', label: 'Concox / GT06', port: 5023 },
+  { value: 'MiCODUS MV710G', label: 'MiCODUS MV710G', port: 5015, micodus: true },
   { value: 'JT808 compatible', label: 'JT808', port: 5015 },
 ];
 const apns = [
@@ -63,7 +64,10 @@ export default function Devices() {
 
   const list = Object.values(devices).sort((a, b) => a.name.localeCompare(b.name));
   const model = models.find((m) => m.value === (added || editing)?.model) || models[0];
-  const serverCommand = `SERVER,${isIp(host) ? 0 : 1},${host},${model.port},0#`;
+  // MiCODUS: SERVER,0,IP,PORT#   Concox / WanWay: SERVER,0,IP,PORT,0#
+  const serverCommand = model.micodus
+    ? `SERVER,${isIp(host) ? 0 : 1},${host},${model.port}#`
+    : `SERVER,${isIp(host) ? 0 : 1},${host},${model.port},0#`;
 
   const save = async () => {
     const imei = editing.uniqueId.trim();

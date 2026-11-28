@@ -19,6 +19,7 @@ All releases: https://github.com/xmarthost/XMart-Track/releases
 
 | Version | Date | What it is |
 |---|---|---|
+| v2.3.0 | 2026-11-29 | MiCODUS MV710G support: model in the vehicle settings (JT808, port 5015), its own command list (relay fuel cut, timer, overspeed, centre/SOS numbers, status), text commands and replies over JT808; unsupported commands are greyed out per tracker; armed / door / battery shown when a tracker reports them. |
 | v2.2.1 | 2026-11-29 | Pro layout: full-screen map while a vehicle is open (no header or tab bar), one small top card, a small details popup on the car (tap the car to show / hide), slimmer button bar. |
 | v2.2.0 | 2026-11-29 | New Pro layout (address and details cards, five big buttons, More page with all functions); up to 3 SOS numbers; new animated start screen; Classic stays the default layout. |
 | v2.1.0 | 2026-11-28 | Layouts change the whole map screen (new Full Map layout, compact and big vehicle cards, button styles); fast share-location page; fix for the error on shared links. |

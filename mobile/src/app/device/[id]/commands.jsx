@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -20,7 +21,8 @@ import { colors, formatDateTime } from '../../../state/status';
 import { Button } from '../../../components/ui';
 
 // type: Traccar command type; data: text command ({key} replaced by the field values)
-const groups = [
+// WanWay G19S / Concox (GT06 protocol)
+const gt06Groups = [
   {
     title: 'Control',
     items: [
@@ -105,6 +107,81 @@ const groups = [
   },
 ];
 
+// MiCODUS MV710G (JT808 protocol): commands from the MV710G user manual, sent as text messages
+const micodusGroups = [
+  {
+    title: 'Fuel / engine (relay)',
+    items: [
+      { label: 'Cut off fuel now', icon: 'power-settings-new', data: 'RELAY,1#', danger: true, note: 'Stops the engine at once. Use only when the vehicle is safe to stop.' },
+      { label: 'Cut off fuel safely', icon: 'shield', data: 'RELAY,2#', danger: true, note: 'Cuts only when the vehicle is slower than 20 km/h (or parked without GPS).' },
+      { label: 'Restore fuel', icon: 'play-circle-outline', data: 'RELAY,0#' },
+    ],
+  },
+  {
+    title: 'Data upload',
+    items: [
+      {
+        label: 'Upload interval',
+        icon: 'timer',
+        data: 'TIMER,{moving},{parked}#',
+        fields: [
+          { key: 'moving', label: 'While ACC is ON (seconds)', initial: '10', numeric: true },
+          { key: 'parked', label: 'While ACC is OFF (seconds)', initial: '300', numeric: true },
+        ],
+      },
+      { label: 'Real-time mode (10 s / 5 min)', icon: 'bolt', data: 'TIMER,10,300#' },
+    ],
+  },
+  {
+    title: 'Alarms',
+    items: [
+      {
+        label: 'Overspeed alarm ON',
+        icon: 'speed',
+        data: 'SPEED,ON,{kmh},{method}#',
+        fields: [
+          { key: 'kmh', label: 'Speed limit (km/h)', initial: '100', numeric: true, min: 10, max: 250 },
+          { key: 'method', label: 'Alert method (manual: 0 platform, 1 + SMS)', initial: '1', numeric: true, min: 0, max: 2 },
+        ],
+      },
+      { label: 'Overspeed alarm OFF', icon: 'speed', data: 'SPEED,OFF#' },
+    ],
+  },
+  {
+    title: 'Phone numbers',
+    items: [
+      { label: 'Center number (controls the tracker by SMS)', icon: 'contact-phone', data: 'CENTER,A,{value}#', fields: [{ key: 'value', label: 'Mobile number', phone: true }] },
+      {
+        label: 'SOS numbers (up to 3)',
+        icon: 'sos',
+        data: 'SOS,A,{sos1},{sos2},{sos3}#',
+        fields: [
+          { key: 'sos1', label: 'SOS number 1', phone: true },
+          { key: 'sos2', label: 'SOS number 2 (optional)', phone: true, optional: true },
+          { key: 'sos3', label: 'SOS number 3 (optional)', phone: true, optional: true },
+        ],
+        build: (v) => `SOS,A,${[v.sos1, v.sos2, v.sos3].map((n) => (n || '').trim()).filter(Boolean).join(',')}#`,
+      },
+    ],
+  },
+  {
+    title: 'Device',
+    items: [
+      { label: 'Status (relay, alarm, arm state)', icon: 'info-outline', data: 'STATUS#' },
+      { label: 'Parameters (timer, numbers)', icon: 'tune', data: 'PARAM#' },
+      { label: 'Time zone GMT+5 (Pakistan)', icon: 'schedule', data: 'GMT,E,5#' },
+      { label: 'Restart tracker', icon: 'restart-alt', type: 'rebootDevice' },
+    ],
+  },
+  {
+    title: 'Custom',
+    items: [{ label: 'Custom command', icon: 'terminal', data: '{value}', fields: [{ key: 'value', label: 'Command text' }] }],
+  },
+];
+
+// which command list a tracker gets, from its model in the vehicle settings
+export const isMicodus = (device) => /micodus|^mv\d|^ml\d/i.test(device?.model || '');
+
 export default function Commands() {
   const { id } = useLocalSearchParams();
   const deviceId = Number(id);
@@ -117,6 +194,15 @@ export default function Commands() {
   const [message, setMessage] = useState(null);
   const [history, setHistory] = useState([]);
   const [showAll, setShowAll] = useState(false);
+  const [supported, setSupported] = useState(null); // command types the server can send to this tracker
+  const groups = isMicodus(device) ? micodusGroups : gt06Groups;
+
+  useEffect(() => {
+    api(`api/commands/types?deviceId=${deviceId}`)
+      .then((list) => setSupported(new Set(list.map((t) => t.type))))
+      .catch(() => setSupported(null));
+  }, [deviceId]);
+  const isSupported = (item) => !item.type || !supported || supported.has(item.type);
 
   const loadReplies = () => {
     const from = new Date(Date.now() - 3 * 864e5).toISOString();
@@ -127,6 +213,11 @@ export default function Commands() {
   useEffect(loadReplies, [deviceId, events.length]);
 
   const open = (item) => {
+    if (!isSupported(item)) {
+      setMessage(null);
+      Alert.alert(item.label, 'Not supported by this tracker.');
+      return;
+    }
     setValues(Object.fromEntries((item.fields || []).map((f) => [f.key, f.initial || ''])));
     setMessage(null);
     setSelected(item);
@@ -145,9 +236,9 @@ export default function Commands() {
     const bad = (selected.fields || []).find((f) => {
       if (!f.numeric) return false;
       const n = Number(values[f.key]);
-      return !Number.isInteger(n) || n < 5 || n > 18000;
+      return !Number.isInteger(n) || n < (f.min ?? 5) || n > (f.max ?? 18000);
     });
-    return bad ? 'Seconds must be a whole number from 5 to 18000' : null;
+    return bad ? `${bad.label}: a whole number from ${bad.min ?? 5} to ${bad.max ?? 18000}` : null;
   })();
 
   const sendGprs = async () => {
@@ -177,7 +268,7 @@ export default function Commands() {
       <ScrollView contentContainerStyle={{ padding: 12, gap: 12, paddingBottom: 32 + insets.bottom }}>
         <View style={styles.deviceRow}>
           <View style={[styles.dot, { backgroundColor: device?.status === 'online' ? colors.moving : colors.inactive }]} />
-          <Text style={styles.subtitle}>{`${device?.name || ''} • ${device?.status === 'online' ? 'Online' : 'Offline'}`}</Text>
+          <Text style={styles.subtitle}>{`${device?.name || ''} • ${device?.status === 'online' ? 'Online' : 'Offline'}${device?.model ? ` • ${device.model}` : ''}`}</Text>
         </View>
         {groups.map((group) => (
           <View key={group.title} style={styles.group}>
@@ -189,12 +280,16 @@ export default function Commands() {
                 onPress={() => open(item)}
                 android_ripple={{ color: colors.border }}
               >
-                <View style={[styles.itemIcon, { backgroundColor: item.danger ? colors.offline : colors.teal }]}>
+                <View style={[styles.itemIcon, { backgroundColor: !isSupported(item) ? colors.inactive : item.danger ? colors.offline : colors.teal }]}>
                   <MaterialIcons name={item.icon} size={20} color="#FFF" />
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, opacity: isSupported(item) ? 1 : 0.5 }}>
                   <Text style={[styles.itemText, item.danger && { color: colors.offline }]}>{item.label}</Text>
-                  {item.data && !item.fields ? <Text style={styles.itemCode}>{item.data}</Text> : null}
+                  {!isSupported(item) ? (
+                    <Text style={styles.itemCode}>Not supported by this tracker</Text>
+                  ) : item.data && !item.fields ? (
+                    <Text style={styles.itemCode}>{item.data}</Text>
+                  ) : null}
                 </View>
                 <MaterialIcons name="chevron-right" size={22} color="#94A3B8" />
               </Pressable>
