@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Live location – XMart Track</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  html, body { margin: 0; height: 100%; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #F4F8FD; }
+  #map { position: absolute; inset: 0; }
+  .card { position: absolute; left: 12px; right: 12px; bottom: 16px; z-index: 1000; background: #fff; border-radius: 18px;
+          padding: 14px 16px; box-shadow: 0 6px 24px rgba(15,23,42,.18); max-width: 560px; margin: 0 auto; }
+  .name { font-size: 19px; font-weight: 800; color: #0F172A; }
+  .state { display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 8px; font-weight: 700; font-size: 14px; }
+  .addr { margin-top: 8px; color: #475569; font-size: 14px; line-height: 1.4; }
+  .meta { margin-top: 6px; color: #94A3B8; font-size: 12px; }
+  .brand { position: absolute; top: 12px; left: 12px; z-index: 1000; background: #0A4A55; color: #fff; font-weight: 800;
+           padding: 8px 14px; border-radius: 14px; font-size: 14px; box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+  .brand span { color: #5EEAD4; }
+  .msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center;
+         padding: 24px; color: #475569; font-size: 16px; z-index: 1001; background: #F4F8FD; }
+  .car { transition: transform .9s linear; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="brand">XMart <span>Track</span> · live</div>
+<div class="card" id="card" style="display:none">
+  <div class="name" id="name"></div>
+  <div class="state" id="state"></div>
+  <div class="addr" id="addr"></div>
+  <div class="meta" id="meta"></div>
+</div>
+<div class="msg" id="msg">Loading the live location…</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// Light page for a shared live-location link (?token=…): only the vehicle, its state and address,
+// refreshed every 10 seconds. The token is a read-only, expiring login made by "Share live location".
+(function () {
+  const params = new URLSearchParams(location.search);
+  const token = params.get('token');
+  const msg = document.getElementById('msg');
+  const fail = (text) => { msg.textContent = text; msg.style.display = 'flex'; };
+  if (!token) { fail('This link is not complete.'); return; }
+
+  const map = L.map('map', { zoomControl: false, attributionControl: true }).setView([30.37, 69.34], 5);
+  L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&hl=en&gl=pk&x={x}&y={y}&z={z}&scale=2',
+    { subdomains: '0123', maxZoom: 20, attribution: '© Google' }).addTo(map);
+  L.control.zoom({ position: 'topright' }).addTo(map);
+
+  const colors = { moving: ['#16A34A', 'green'], parked: ['#2563EB', 'blue'], offline: ['#DC2626', 'red'], unknown: ['#94A3B8', 'gray'] };
+  let marker = null, follow = true, lastAddressKey = '';
+  map.on('dragstart', () => { follow = false; });
+
+  const pad = (n) => String(n).padStart(2, '0');
+  const when = (t) => { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+
+  function state(device, p) {
+    if (device.status !== 'online' && device.status !== 'unknown') return ['offline', 'Offline'];
+    if (!p) return ['unknown', 'No location yet'];
+    const fresh = Date.now() - new Date(p.fixTime).getTime() < 180000;
+    const kmh = Math.round((p.speed || 0) * 1.852);
+    if (fresh && kmh > 3) return ['moving', `Moving ${kmh} km/h`];
+    return ['parked', p.attributes && p.attributes.ignition ? 'Parked (engine on)' : 'Parked'];
+  }
+
+  async function refresh() {
+    const [devices, positions] = await Promise.all([
+      fetch('api/devices').then((r) => r.json()),
+      fetch('api/positions').then((r) => r.json()),
+    ]);
+    const device = devices[0];
+    if (!device) { fail('This link has expired or was stopped.'); return; }
+    const p = positions.find((x) => x.deviceId === device.id);
+    const [key, text] = state(device, p);
+    document.getElementById('name').textContent = device.name;
+    const s = document.getElementById('state');
+    s.textContent = text; s.style.color = colors[key][0]; s.style.background = colors[key][0] + '1A';
+    document.getElementById('card').style.display = 'block';
+    msg.style.display = 'none';
+    if (!p) return;
+    document.getElementById('meta').textContent = `Updated ${when(p.fixTime)}`;
+    const ll = [p.latitude, p.longitude];
+    const html = `<img class="car" src="share/car-${colors[key][1]}.png" style="width:48px;height:48px;transform:rotate(${p.course || 0}deg)">`;
+    const icon = L.divIcon({ html, className: '', iconSize: [48, 48], iconAnchor: [24, 24] });
+    if (!marker) { marker = L.marker(ll, { icon }).addTo(map); map.setView(ll, 16); }
+    else { marker.setLatLng(ll); marker.setIcon(icon); if (follow) map.panTo(ll, { animate: true, duration: 1 }); }
+    const addressKey = `${p.latitude.toFixed(4)},${p.longitude.toFixed(4)}`;
+    if (addressKey !== lastAddressKey) {
+      lastAddressKey = addressKey;
+      fetch(`api/server/geocode?latitude=${p.latitude}&longitude=${p.longitude}`)
+        .then((r) => (r.ok ? r.text() : ''))
+        .then((a) => { document.getElementById('addr').textContent = a.replace(/^"|"$/g, '') || `${p.latitude.toFixed(5)}, ${p.longitude.toFixed(5)}`; })
+        .catch(() => {});
+    }
+  }
+
+  fetch(`api/session?token=${encodeURIComponent(token)}`)
+    .then((r) => {
+      if (!r.ok) throw new Error('expired');
+      return refresh().then(() => setInterval(() => refresh().catch(() => {}), 10000));
+    })
+    .catch(() => fail('This link has expired or was stopped. Ask for a new link.'));
+})();
+</script>
+</body>
+</html>

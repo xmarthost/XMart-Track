@@ -215,7 +215,14 @@ export const LocalizationProvider = ({ children }) => {
 
   useAsyncTask(
     async ({ signal }) => {
-      if (user && !user.attributes.language && !serverLanguage) {
+      // read-only users (e.g. a shared live-location link) cannot save settings
+      if (
+        user &&
+        !user.readonly &&
+        !user.temporary &&
+        !user.attributes.language &&
+        !serverLanguage
+      ) {
         const response = await fetchOrThrow(`api/users/${user.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
