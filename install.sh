@@ -299,7 +299,7 @@ curl -fs -o /dev/null http://127.0.0.1:8082/ || die "Server did not start. Check
 
 # ---------------------------------------------------------------- nginx + ssl
 log "Configuring web server (nginx)"
-PORT443_OWNER="$(ss -Hltnp 'sport = :443' 2>/dev/null | grep -o 'users:(("[^"]*"' | head -1 | cut -d'"' -f2)"
+PORT443_OWNER="$(ss -Hltnp 'sport = :443' 2>/dev/null | grep -o 'users:(("[^"]*"' | head -1 | cut -d'"' -f2 || true)"
 if [ -n "$PORT443_OWNER" ] && [ "$PORT443_OWNER" != "nginx" ]; then
   warn "Port 443 (HTTPS) is used by '$PORT443_OWNER', not nginx: the HTTPS site will not open."
   warn "Move '$PORT443_OWNER' to another port (or stop it), then run this installer again."
@@ -361,11 +361,11 @@ ufw --force enable >/dev/null
 
 SSL_STATUS="not configured"
 if [ -n "$DOMAIN" ] && [ "$SSL" -eq 1 ]; then
-  DNS_IP="$(getent ahostsv4 "$DOMAIN" | awk 'NR==1{print $1}')"
+  DNS_IP="$(getent ahostsv4 "$DOMAIN" | awk 'NR==1{print $1}' || true)"
   if [ "$DNS_IP" = "$PUBLIC_IP" ]; then
     log "Getting SSL certificate for $DOMAIN"
     DOMAINS=(-d "$DOMAIN")
-    WWW_IP="$(getent ahostsv4 "www.$DOMAIN" | awk 'NR==1{print $1}')"
+    WWW_IP="$(getent ahostsv4 "www.$DOMAIN" | awk 'NR==1{print $1}' || true)"
     [ "$WWW_IP" = "$PUBLIC_IP" ] && DOMAINS+=(-d "www.$DOMAIN")
     if certbot --nginx --non-interactive --agree-tos --redirect -m "$EMAIL" "${DOMAINS[@]}"; then
       SSL_STATUS="enabled (auto renew)"
